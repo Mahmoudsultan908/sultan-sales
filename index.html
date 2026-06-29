@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="سلطان">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1d4ed8">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Sultan Sales Control</title>
+<style>
+:root {
+  --bg: #f0f5ff;
+  --surface: #ffffff;
+  --surface2: #eff6ff;
+  --blue: #2563eb;
+  --blue-dim: rgba(37,99,235,0.08);
+  --text: #1e3a5f;
+  --muted: #64748b;
+  --border: #bfdbfe;
+  --new: #3b82f6;
+  --contacted: #d97706;
+  --interested: #7c3aed;
+  --price: #9333ea;
+  --ordered: #059669;
+  --lost: #dc2626;
+  --wa: #25d366;
+  --gold: #2563eb;
+  --gold-dim: rgba(37,99,235,0.08);
+  --r: 12px; --rs: 8px;
+  --nav: 60px; --hdr: 56px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(--bg);color:var(--text);direction:rtl;font-size:14px;line-height:1.5}
+
+/* SETUP */
+#setup{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:linear-gradient(145deg,#eff6ff 0%,#dbeafe 60%,#e0e7ff 100%)}
+.s-logo{font-size:52px;margin-bottom:8px;text-align:center}
+.s-title{font-size:22px;font-weight:900;color:#1d4ed8;text-align:center;letter-spacing:-0.5px}
+.s-sub{font-size:12px;color:var(--muted);margin:4px 0 28px;text-align:center}
+.s-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;width:100%;max-width:380px;box-shadow:0 4px 24px rgba(37,99,235,0.10)}
+.flabel{font-size:11px;color:#1d4ed8;font-weight:700;margin-bottom:5px;display:block;letter-spacing:0.3px}
+.finput{width:100%;background:#f8faff;border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;margin-bottom:14px;transition:border-color .2s}
+.finput:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.10)}
+.fhint{font-size:10px;color:var(--muted);margin-top:-10px;margin-bottom:14px}
+.btn-gold{width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:var(--rs);padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;transition:opacity .2s;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
+.btn-gold:active{opacity:.85}
+.s-demo{text-align:center;margin-top:14px;font-size:12px;color:var(--muted)}
+.s-demo a{color:#2563eb;text-decoration:none;cursor:pointer}
+.s-demo a:hover{text-decoration:underline}
+
+/* APP SHELL */
+#app{display:none;flex-direction:column;height:100vh;overflow:hidden}
+
+/* HEADER */
+.hdr{height:var(--hdr);background:linear-gradient(135deg,#1d4ed8,#2563eb);border-bottom:none;display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,0.20)}
+.hdr-brand{display:flex;align-items:center;gap:9px}
+.hdr-ico{font-size:22px}
+.hdr-t{font-size:14px;font-weight:900;color:#fff;line-height:1.2}
+.hdr-s{font-size:10px;color:rgba(255,255,255,0.75)}
+.hdr-actions{display:flex;gap:6px;align-items:center}
+.btn-sm{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-sm:hover{background:rgba(255,255,255,0.25)}
+.btn-sm.gold{background:rgba(255,255,255,0.20);border-color:rgba(255,255,255,0.5)}
+
+/* TABS */
+.tab-wrap{flex:1;overflow:hidden;position:relative}
+.tab{display:none;height:100%;overflow-y:auto;padding:12px 12px calc(var(--nav) + 12px);-webkit-overflow-scrolling:touch}
+.tab.active{display:block}
+
+/* BOTTOM NAV */
+.bnav{height:var(--nav);background:#fff;border-top:1px solid var(--border);display:flex;flex-shrink:0;box-shadow:0 -2px 8px rgba(37,99,235,0.07)}
+.nbtn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:#94a3b8;cursor:pointer;font-family:inherit;transition:color .2s;position:relative}
+.nbtn.active{color:#2563eb}
+.nico{font-size:20px}
+.nlbl{font-size:10px;font-weight:600}
+.nbadge{position:absolute;top:5px;left:50%;transform:translateX(5px);background:#dc2626;color:#fff;border-radius:10px;font-size:9px;font-weight:800;padding:1px 5px;min-width:16px;text-align:center}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px;position:relative;overflow:hidden;border-right:3px solid var(--c,#2563eb);box-shadow:0 2px 8px rgba(37,99,235,0.06)}
+.kpi-ico{font-size:20px;margin-bottom:5px}
+.kpi-n{font-size:30px;font-weight:900;color:var(--c,#2563eb);line-height:1}
+.kpi-l{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* PIPELINE */
+.sec-title{font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:8px;letter-spacing:0.5px;text-transform:uppercase}
+.pipe-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:14px}
+.pstep{background:#fff;border:1px solid var(--border);border-radius:var(--rs);padding:10px 5px;text-align:center;box-shadow:0 1px 4px rgba(37,99,235,0.05)}
+.pstep-n{font-size:20px;font-weight:900;line-height:1}
+.pstep-l{font-size:9px;color:var(--muted);margin-top:3px}
+.pstep-pct{font-size:9px;color:var(--muted);margin-top:1px}
+
+/* URGENT PREVIEW */
+.urgent-box{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px;box-shadow:0 2px 8px rgba(37,99,235,0.06)}
+.urgent-hdr{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#fff5f5;border-bottom:1px solid #fecaca}
+.urgent-hdr-t{font-size:12px;font-weight:700;color:#dc2626}
+.task-row{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.task-row:last-child{border-bottom:none}
+.task-info .t-name{font-weight:700;font-size:13px;color:var(--text)}
+.task-info .t-reason{font-size:11px;color:var(--muted);margin-top:2px}
+.btn-wa{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:20px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(34,197,94,0.30)}
+.btn-wa:active{opacity:.85}
+
+/* CUSTOMER LIST */
+.search-row{display:flex;gap:7px;margin-bottom:9px}
+.sinput{flex:1;background:#fff;border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;box-shadow:0 1px 4px rgba(37,99,235,0.05)}
+.sinput:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.10)}
+.pills{display:flex;gap:5px;overflow-x:auto;padding-bottom:6px;margin-bottom:9px;scrollbar-width:none}
+.pills::-webkit-scrollbar{display:none}
+.pill{background:#fff;border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:11px;cursor:pointer;white-space:nowrap;color:var(--muted);font-family:inherit;transition:all .2s;font-weight:600}
+.pill.active{font-weight:700;color:#fff}
+
+/* CUSTOMER CARD */
+.ccard{background:#fff;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden;position:relative;box-shadow:0 2px 8px rgba(37,99,235,0.06)}
+.ccard-hdr{padding:12px 14px 8px;display:flex;justify-content:space-between;align-items:flex-start}
+.c-name{font-weight:800;font-size:14px;color:var(--text)}
+.c-shop{font-size:12px;color:var(--muted)}
+.c-area{font-size:11px;color:var(--muted);margin-top:1px}
+.sbadge{padding:3px 8px;border-radius:12px;font-size:10px;font-weight:700;border:1px solid currentColor}
+.ccard-body{padding:0 14px 11px;display:flex;justify-content:space-between;align-items:center}
+.c-meta{font-size:11px;color:var(--muted)}
+.c-meta span{display:block}
+.c-acts{display:flex;gap:5px}
+.btn-edit{background:#f1f5f9;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+.btn-edit:active{opacity:.8}
+.urgent-dot{position:absolute;top:12px;left:12px;width:8px;height:8px;background:#dc2626;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+
+/* TASK PAGE */
+.task-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden;box-shadow:0 2px 8px rgba(37,99,235,0.06)}
+.task-card-hdr{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start}
+.task-card-body{padding:10px 14px 12px}
+.tc-msg{font-size:12px;color:#374151;background:#f8faff;border-radius:var(--rs);padding:10px 12px;margin-bottom:10px;line-height:1.7;border:1px solid var(--border)}
+.tc-acts{display:flex;gap:7px;flex-wrap:wrap}
+.btn-copy{background:#f1f5f9;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:11px;cursor:pointer;font-family:inherit}
+
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(15,40,100,0.40);z-index:100;align-items:flex-end}
+.modal.open{display:flex}
+.mbox{background:#fff;border:1px solid var(--border);border-radius:var(--r) var(--r) 0 0;width:100%;max-width:500px;margin:auto auto 0;padding:20px;max-height:85vh;overflow-y:auto;box-shadow:0 -4px 24px rgba(37,99,235,0.12)}
+.mhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.mtitle{font-size:16px;font-weight:800;color:var(--text)}
+.mclose{background:#f1f5f9;border:none;color:var(--text);border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* FORM */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fgrid .full{grid-column:1/-1}
+.fselect{width:100%;background:#f8faff;border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
+.fselect:focus{border-color:#2563eb}
+.fta{width:100%;background:#f8faff;border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;resize:vertical;min-height:75px}
+.form-field{display:flex;flex-direction:column;gap:5px}
+.divider{height:1px;background:var(--border);margin:14px 0}
+
+/* STAGE SELECTOR */
+.stage-sel{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+.sstage{padding:8px 5px;border-radius:var(--rs);border:2px solid var(--border);text-align:center;cursor:pointer;font-size:11px;font-weight:700;transition:all .2s;font-family:inherit;background:#f8faff;color:var(--muted)}
+.sstage.sel{color:#fff;border-color:transparent}
+
+/* SETTINGS */
+.sset{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(37,99,235,0.05)}
+.sset-title{font-size:11px;font-weight:700;color:#1d4ed8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px}
+
+/* TOAST */
+#toast{position:fixed;bottom:calc(var(--nav) + 12px);left:50%;transform:translateX(-50%) translateY(16px);background:#fff;border:1px solid var(--border);border-radius:var(--rs);padding:9px 16px;font-size:12px;opacity:0;transition:all .3s;z-index:200;white-space:nowrap;pointer-events:none;color:var(--text);box-shadow:0 4px 12px rgba(37,99,235,0.15)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.error{border-color:#dc2626;color:#dc2626}
+#toast.success{border-color:#059669;color:#059669}
+
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-ico{font-size:40px;margin-bottom:10px}
+.empty-t{font-size:14px}
+.spin{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat-mini{background:#fff;border:1px solid var(--border);border-radius:var(--rs);padding:10px;text-align:center;box-shadow:0 1px 4px rgba(37,99,235,0.05)}
+.stat-mini-n{font-size:20px;font-weight:800;color:#2563eb}
+.stat-mini-l{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* CONVERSION BAR */
+.conv-bar{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(37,99,235,0.06)}
+.conv-track{height:8px;background:#eff6ff;border-radius:10px;overflow:hidden;margin:10px 0 6px;border:1px solid var(--border)}
+.conv-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#3b82f6,#059669);transition:width .6s ease}
+.conv-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+
+@media(min-width:500px){
+  .kpi-grid{grid-template-columns:repeat(4,1fr)}
+  .fgrid{grid-template-columns:1fr 1fr 1fr}
+  .stage-sel{grid-template-columns:repeat(6,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- ======= SETUP SCREEN ======= -->
+<div id="setup">
+  <div class="s-logo">🏪</div>
+  <div class="s-title">Sultan Sales Control</div>
+  <div class="s-sub">نظام إدارة المبيعات — شركة سلطان للمواد الغذائية</div>
+  <div class="s-card">
+    <label class="flabel">رابط Google Apps Script</label>
+    <input class="finput" id="setup-url" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+    <div class="fhint">ارفع Apps Script وادخل رابط التنفيذ هنا</div>
+    <label class="flabel">اسمك (المسؤول)</label>
+    <input class="finput" id="setup-agent" placeholder="مثال: سلطان">
+    <button class="btn-gold" onclick="saveSetup()">🚀 ابدأ النظام</button>
+    <div class="s-demo"><a onclick="loadDemo()">أو افتح بيانات تجريبية (Demo)</a></div>
+  </div>
+</div>
+
+<!-- ======= MAIN APP ======= -->
+<div id="app">
+  <header class="hdr">
+    <div class="hdr-brand">
+      <span class="hdr-ico">🏪</span>
+      <div>
+        <div class="hdr-t">Sultan Sales Control</div>
+        <div class="hdr-s" id="hdr-date"></div>
+      </div>
+    </div>
+    <div class="hdr-actions">
+      <button class="btn-sm" id="install-btn" onclick="installPWA()" style="display:none;background:rgba(255,255,255,0.2);gap:4px">📲 تثبيت</button>
+      <button class="btn-sm gold" onclick="refreshData()">⟳ تحديث</button>
+      <button class="btn-sm" id="demo-badge" style="display:none;background:rgba(248,113,113,.1);border-color:var(--lost);color:var(--lost)">DEMO</button>
+    </div>
+  </header>
+
+  <div class="tab-wrap">
+    <!-- TAB 1: DASHBOARD -->
+    <div class="tab active" id="tab-home">
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi" style="--c:var(--gold)"><div class="kpi-ico">👥</div><div class="kpi-n" id="kpi-total">0</div><div class="kpi-l">إجمالي العملاء</div></div>
+        <div class="kpi" style="--c:var(--new)"><div class="kpi-ico">🆕</div><div class="kpi-n" id="kpi-new">0</div><div class="kpi-l">عملاء جدد</div></div>
+        <div class="kpi" style="--c:var(--ordered)"><div class="kpi-ico">✅</div><div class="kpi-n" id="kpi-ordered">0</div><div class="kpi-l">اشتروا</div></div>
+        <div class="kpi" style="--c:var(--lost)"><div class="kpi-ico">⚠️</div><div class="kpi-n" id="kpi-urgent">0</div><div class="kpi-l">تحتاج متابعة</div></div>
+      </div>
+
+      <div class="conv-bar">
+        <div class="sec-title">📊 معدل التحويل</div>
+        <div class="conv-track"><div class="conv-fill" id="conv-fill" style="width:0%"></div></div>
+        <div class="conv-labels"><span id="conv-from">0 عميل</span><span id="conv-pct">0% اشتروا</span></div>
+      </div>
+
+      <div class="sec-title">🔄 مسار المبيعات</div>
+      <div class="pipe-grid" id="pipe-grid"></div>
+
+      <div class="sec-title">🔔 أهم مهام اليوم</div>
+      <div class="urgent-box">
+        <div class="urgent-hdr">
+          <span class="urgent-hdr-t" id="urgent-count-t">⚠️ 0 عملاء يحتاجون متابعة</span>
+          <button class="btn-sm" onclick="switchTab('tasks')">عرض الكل</button>
+        </div>
+        <div id="urgent-preview"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: CUSTOMERS -->
+    <div class="tab" id="tab-customers">
+      <div class="search-row">
+        <input class="sinput" id="search-inp" placeholder="🔍 ابحث عن عميل أو محل..." oninput="filterCustomers()">
+        <button class="btn-sm" onclick="openAddModal()">+ إضافة</button>
+      </div>
+      <div class="pills" id="stage-pills"></div>
+      <div id="customer-list"><div class="spin">⏳ جاري التحميل...</div></div>
+    </div>
+
+    <!-- TAB 3: TODAY'S TASKS -->
+    <div class="tab" id="tab-tasks">
+      <div class="stats-row" id="task-stats"></div>
+      <div id="task-list"><div class="spin">⏳ جاري التحميل...</div></div>
+    </div>
+
+    <!-- TAB 4: ADD CUSTOMER -->
+    <div class="tab" id="tab-add">
+      <div class="sec-title">➕ إضافة عميل جديد</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px">
+        <div class="fgrid">
+          <div class="form-field">
+            <label class="flabel">اسم العميل *</label>
+            <input class="finput" id="f-name" placeholder="الاسم الأول" style="margin-bottom:0">
+          </div>
+          <div class="form-field">
+            <label class="flabel">اسم المحل *</label>
+            <input class="finput" id="f-shop" placeholder="اسم المحل" style="margin-bottom:0">
+          </div>
+          <div class="form-field">
+            <label class="flabel">رقم الهاتف *</label>
+            <input class="finput" id="f-phone" placeholder="01XXXXXXXXX" type="tel" style="margin-bottom:0">
+          </div>
+          <div class="form-field">
+            <label class="flabel">المنطقة</label>
+            <input class="finput" id="f-area" placeholder="مثال: سيدي بشر" style="margin-bottom:0">
+          </div>
+          <div class="form-field">
+            <label class="flabel">نوع النشاط</label>
+            <select class="fselect" id="f-type">
+              <option value="">اختر...</option>
+              <option>بقالة</option>
+              <option>سوبر ماركت</option>
+              <option>ميني ماركت</option>
+              <option>كافيه</option>
+              <option>مطعم</option>
+              <option>جملة</option>
+              <option>كيوسك</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="flabel">مصدر العميل</label>
+            <select class="fselect" id="f-source">
+              <option value="">اختر...</option>
+              <option>مندوب</option>
+              <option>واتساب</option>
+              <option>زيارة مباشرة</option>
+              <option>توصية</option>
+              <option>سوشيال ميديا</option>
+            </select>
+          </div>
+          <div class="form-field full">
+            <label class="flabel">المندوب المسؤول</label>
+            <input class="finput" id="f-agent" style="margin-bottom:0">
+          </div>
+          <div class="form-field full">
+            <label class="flabel">ملاحظات</label>
+            <textarea class="fta" id="f-notes" placeholder="أي ملاحظات مهمة..."></textarea>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <button class="btn-gold" onclick="submitAddCustomer()">✅ إضافة العميل</button>
+      </div>
+    </div>
+
+    <!-- TAB 5: SETTINGS -->
+    <div class="tab" id="tab-settings">
+      <div class="sset">
+        <div class="sset-title">الإعدادات</div>
+        <div class="form-field" style="margin-bottom:12px">
+          <label class="flabel">رابط Apps Script</label>
+          <input class="finput" id="s-url" style="margin-bottom:0">
+        </div>
+        <div class="form-field" style="margin-bottom:12px">
+          <label class="flabel">اسم المسؤول</label>
+          <input class="finput" id="s-agent" style="margin-bottom:0">
+        </div>
+        <button class="btn-gold" onclick="saveSettings()" style="margin-top:4px">💾 حفظ الإعدادات</button>
+      </div>
+      <div class="sset">
+        <div class="sset-title">💾 نسخ احتياطي</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">احفظ إعداداتك وارجعلها على أي جهاز أو تليفون بسهولة</p>
+        <div style="display:flex;gap:8px">
+          <button class="btn-gold" onclick="exportBackup()" style="flex:1;font-size:13px">💾 تصدير النسخة</button>
+          <button class="btn-sm" onclick="importBackup()" style="flex:1;padding:12px;background:#eff6ff;border-color:var(--border);color:var(--text);font-weight:700">📥 استيراد</button>
+        </div>
+      </div>
+      <div class="sset">
+        <div class="sset-title">تصدير البيانات</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm" onclick="exportCSV()" style="flex:1;padding:10px">📊 تصدير CSV</button>
+          <button class="btn-sm" onclick="refreshData()" style="flex:1;padding:10px">⟳ إعادة تحميل</button>
+        </div>
+      </div>
+      <div class="sset">
+        <div class="sset-title">✏️ تعديل رسائل الواتساب</div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#1e40af;line-height:1.8">
+          <strong>المتغيرات المتاحة:</strong><br>
+          <code>{name}</code> = اسم العميل &nbsp;|&nbsp;
+          <code>{shop}</code> = اسم المحل &nbsp;|&nbsp;
+          <code>{agent}</code> = اسم المندوب
+        </div>
+        <div id="msg-editor">
+          <div style="margin-bottom:12px">
+            <label class="flabel" style="color:#3b82f6">🆕 رسالة عميل جديد</label>
+            <textarea class="fta" id="msg-جديد" style="min-height:110px;font-size:12px;line-height:1.7"></textarea>
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="flabel" style="color:#d97706">📞 رسالة متابعة (تم التواصل)</label>
+            <textarea class="fta" id="msg-تم-التواصل" style="min-height:110px;font-size:12px;line-height:1.7"></textarea>
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="flabel" style="color:#7c3aed">💡 رسالة مهتم</label>
+            <textarea class="fta" id="msg-مهتم" style="min-height:110px;font-size:12px;line-height:1.7"></textarea>
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="flabel" style="color:#9333ea">💰 رسالة متابعة الأسعار</label>
+            <textarea class="fta" id="msg-طلب-أسعار" style="min-height:110px;font-size:12px;line-height:1.7"></textarea>
+          </div>
+          <div style="margin-bottom:14px">
+            <label class="flabel" style="color:#059669">✅ رسالة إعادة طلب (اشترى)</label>
+            <textarea class="fta" id="msg-اشترى" style="min-height:110px;font-size:12px;line-height:1.7"></textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-gold" onclick="saveMsgs()" style="flex:2">💾 حفظ الرسائل</button>
+          <button class="btn-sm" onclick="resetMsgs()" style="flex:1;padding:12px;color:#dc2626;border-color:#fecaca">↩️ استعادة</button>
+        </div>
+      </div>
+
+      <div class="sset">
+        <div class="sset-title">حول النظام</div>
+        <div style="font-size:12px;color:var(--muted);line-height:2">
+          <div>Sultan Sales Control System</div>
+          <div>الإصدار 1.0 — المرحلة الأولى</div>
+          <div>CRM + مهام المندوب + واتساب</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav">
+    <button class="nbtn active" id="nb-home" onclick="switchTab('home')">
+      <span class="nico">🏠</span><span class="nlbl">الرئيسية</span>
+    </button>
+    <button class="nbtn" id="nb-customers" onclick="switchTab('customers')">
+      <span class="nico">👥</span><span class="nlbl">العملاء</span>
+    </button>
+    <button class="nbtn" id="nb-tasks" onclick="switchTab('tasks')">
+      <span class="nico">✅</span><span class="nlbl">مهام اليوم</span>
+      <span class="nbadge" id="task-badge" style="display:none">0</span>
+    </button>
+    <button class="nbtn" id="nb-add" onclick="switchTab('add')">
+      <span class="nico">➕</span><span class="nlbl">إضافة</span>
+    </button>
+    <button class="nbtn" id="nb-settings" onclick="switchTab('settings')">
+      <span class="nico">⚙️</span><span class="nlbl">الإعدادات</span>
+    </button>
+  </nav>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal" id="modal-edit">
+  <div class="mbox">
+    <div class="mhdr">
+      <span class="mtitle" id="m-title">تعديل العميل</span>
+      <button class="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <input type="hidden" id="m-id">
+    <label class="flabel">حالة العميل</label>
+    <div class="stage-sel" id="m-stages"></div>
+    <div class="fgrid">
+      <div class="form-field">
+        <label class="flabel">اسم العميل</label>
+        <input class="finput" id="m-name" style="margin-bottom:0">
+      </div>
+      <div class="form-field">
+        <label class="flabel">اسم المحل</label>
+        <input class="finput" id="m-shop" style="margin-bottom:0">
+      </div>
+      <div class="form-field">
+        <label class="flabel">رقم الهاتف</label>
+        <input class="finput" id="m-phone" style="margin-bottom:0">
+      </div>
+      <div class="form-field">
+        <label class="flabel">المنطقة</label>
+        <input class="finput" id="m-area" style="margin-bottom:0">
+      </div>
+      <div class="form-field">
+        <label class="flabel">موعد المتابعة</label>
+        <input class="finput" id="m-follow" type="date" style="margin-bottom:0">
+      </div>
+      <div class="form-field">
+        <label class="flabel">قيمة آخر طلب (جنيه)</label>
+        <input class="finput" id="m-order" type="number" style="margin-bottom:0">
+      </div>
+      <div class="form-field full">
+        <label class="flabel">ملاحظات</label>
+        <textarea class="fta" id="m-notes"></textarea>
+      </div>
+    </div>
+    <button class="btn-gold" onclick="saveEdit()">💾 حفظ التعديلات</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ============================
+// STATE & CONFIG
+// ============================
+const STATE = {
+  customers: [],
+  isDemo: false,
+  loading: false,
+  activeTab: 'home',
+  activeFilter: 'الكل',
+  apiUrl: localStorage.getItem('sultan_url') || '',
+  agentName: localStorage.getItem('sultan_agent') || 'المندوب',
+};
+
+const STAGES = {
+  'جديد':         { color: '#60a5fa', days: 3,    icon: '🆕' },
+  'تم التواصل':   { color: '#fbbf24', days: 3,    icon: '📞' },
+  'مهتم':         { color: '#818cf8', days: 2,    icon: '💡' },
+  'طلب أسعار':    { color: '#c084fc', days: 2,    icon: '💰' },
+  'اشترى':        { color: '#34d399', days: 7,    icon: '✅' },
+  'خسرناه':       { color: '#f87171', days: null, icon: '❌' },
+};
+
+const STAGE_KEYS = Object.keys(STAGES);
+
+function getToday() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function daysDiff(dateStr) {
+  if (!dateStr) return 999;
+  const d = new Date(dateStr);
+  const t = new Date();
+  return Math.floor((t - d) / 86400000);
+}
+
+function isUrgent(c) {
+  if (c.status === 'خسرناه') return false;
+  if (c.nextFollow && c.nextFollow <= getToday()) return true;
+  const cfg = STAGES[c.status];
+  if (!cfg || !cfg.days) return false;
+  return daysDiff(c.lastContact) >= cfg.days;
+}
+
+// ============================================================
+// رسائل الواتساب — قابلة للتعديل من الإعدادات
+// استخدم: {name} = اسم العميل | {shop} = اسم المحل | {agent} = اسم المندوب
+// ============================================================
+const DEFAULT_MSGS = {
+  'جديد':
+`السلام عليكم أستاذ {name} 👋
+معاك {agent} من شركة سلطان للمواد الغذائية 🌟
+
+حضرتك مسجل معنا وحابين نتعرف على احتياجات {shop} ونرشح لك أفضل الأصناف.
+
+متاح أتكلم معاك؟ 🙏`,
+  'تم التواصل':
+`السلام عليكم أستاذ {name} 👋
+معاك {agent} 🌟
+
+متابع معاك بخصوص احتياجات {shop}.
+عندي أصناف ممتازة بأسعار مناسبة.
+
+إيه رأيك نتكلم؟ 🙏`,
+  'مهتم':
+`السلام عليكم أستاذ {name} 👋
+معاك {agent} 🌟
+
+عندنا تشكيلة بداية ممتازة تناسب {shop}.
+نقدر نجهز لك طلب حسب حركة البيع عندك.
+
+إيه رأيك نبدأ؟ 📦`,
+  'طلب أسعار':
+`السلام عليكم أستاذ {name} 👋
+معاك {agent} 🌟
+
+بعتلك الأسعار من يومين، حبيت أعرف رأيك.
+هل نجهز الطلب؟ أو في استفسار أنا موجود 🙏`,
+  'اشترى':
+`السلام عليكم أستاذ {name} 👋
+معاك {agent} 🌟
+
+كيف حال الأصناف اللي جبناها؟
+حبيت أعرف إيه اللي اتحرك مشان نعبيه تاني 📦
+
+جاهزين للتوريد في أي وقت 🚚`,
+};
+
+function getWAMsg(c) {
+  const saved = JSON.parse(localStorage.getItem('sultan_msgs') || '{}');
+  const template = saved[c.status] || DEFAULT_MSGS[c.status] || DEFAULT_MSGS['جديد'];
+  return template
+    .replace(/{name}/g,  c.name  || 'العميل')
+    .replace(/{shop}/g,  c.shop  || 'المحل')
+    .replace(/{agent}/g, STATE.agentName || 'سلطان');
+}
+
+function loadMsgEditor() {
+  const saved = JSON.parse(localStorage.getItem('sultan_msgs') || '{}');
+  ['جديد','تم التواصل','مهتم','طلب أسعار','اشترى'].forEach(stage => {
+    const el = document.getElementById('msg-' + stage.replace(/ /g,'-'));
+    if (el) el.value = saved[stage] || DEFAULT_MSGS[stage] || '';
+  });
+}
+
+function saveMsgs() {
+  const msgs = {};
+  ['جديد','تم التواصل','مهتم','طلب أسعار','اشترى'].forEach(stage => {
+    const el = document.getElementById('msg-' + stage.replace(/ /g,'-'));
+    if (el && el.value.trim()) msgs[stage] = el.value.trim();
+  });
+  localStorage.setItem('sultan_msgs', JSON.stringify(msgs));
+  toast('✅ تم حفظ الرسائل', 'success');
+}
+
+function resetMsgs() {
+  localStorage.removeItem('sultan_msgs');
+  loadMsgEditor();
+  toast('✅ تم استعادة الرسائل الافتراضية', 'success');
+}
+
+function waLink(c) {
+  const phone = (c.phone || '').replace(/\D/g,'');
+  const intl = phone.startsWith('0') ? '2' + phone : phone;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(getWAMsg(c))}`;
+}
+
+// ============================
+// API
+// ============================
+async function apiGet(params) {
+  if (STATE.isDemo) return null;
+  if (!STATE.apiUrl) return null;
+  const url = STATE.apiUrl + '?' + new URLSearchParams(params).toString();
+  try {
+    const r = await fetch(url);
+    return await r.json();
+  } catch(e) {
+    toast('خطأ في الاتصال بالسيرفر', 'error');
+    return null;
+  }
+}
+
+async function fetchCustomers() {
+  if (STATE.isDemo) { renderAll(); return; }
+  STATE.loading = true;
+  const res = await apiGet({ action: 'getAll' });
+  STATE.loading = false;
+  if (res && res.customers) {
+    STATE.customers = res.customers;
+    renderAll();
+  }
+}
+
+async function addCustomerAPI(c) {
+  if (STATE.isDemo) {
+    c.id = 'D' + Date.now();
+    c.regDate = getToday();
+    c.status = 'جديد';
+    c.lastContact = '';
+    c.total = 0;
+    STATE.customers.push(c);
+    renderAll();
+    toast('✅ تمت الإضافة (وضع تجريبي)', 'success');
+    return;
+  }
+  const params = { action: 'addCustomer', ...c };
+  const res = await apiGet(params);
+  if (res && res.success) {
+    toast('✅ تمت إضافة العميل', 'success');
+    await fetchCustomers();
+  }
+}
+
+async function updateCustomerAPI(id, updates) {
+  if (STATE.isDemo) {
+    const i = STATE.customers.findIndex(c => c.id === id);
+    if (i >= 0) STATE.customers[i] = { ...STATE.customers[i], ...updates };
+    renderAll();
+    toast('✅ تم التحديث (وضع تجريبي)', 'success');
+    return;
+  }
+  const params = { action: 'updateCustomer', id, ...updates };
+  const res = await apiGet(params);
+  if (res && res.success) {
+    toast('✅ تم التحديث', 'success');
+    await fetchCustomers();
+  }
+}
+
+// ============================
+// RENDER
+// ============================
+function renderAll() {
+  renderDashboard();
+  renderCustomers();
+  renderTasks();
+  updateBadge();
+}
+
+function renderDashboard() {
+  const cs = STATE.customers;
+  const total = cs.length;
+  const newC = cs.filter(c => c.status === 'جديد').length;
+  const ordered = cs.filter(c => c.status === 'اشترى').length;
+  const urgent = cs.filter(c => isUrgent(c)).length;
+
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-new').textContent = newC;
+  document.getElementById('kpi-ordered').textContent = ordered;
+  document.getElementById('kpi-urgent').textContent = urgent;
+
+  const pct = total > 0 ? Math.round(ordered/total*100) : 0;
+  document.getElementById('conv-fill').style.width = pct + '%';
+  document.getElementById('conv-from').textContent = total + ' عميل';
+  document.getElementById('conv-pct').textContent = pct + '% اشتروا';
+
+  // Pipeline
+  const pg = document.getElementById('pipe-grid');
+  const stageNames = ['جديد','تم التواصل','مهتم','طلب أسعار','اشترى'];
+  pg.innerHTML = stageNames.map(s => {
+    const cnt = cs.filter(c => c.status === s).length;
+    const p = total > 0 ? Math.round(cnt/total*100) : 0;
+    const cfg = STAGES[s];
+    return `<div class="pstep">
+      <div class="pstep-n" style="color:${cfg.color}">${cnt}</div>
+      <div class="pstep-l">${s}</div>
+      <div class="pstep-pct">${p}%</div>
+    </div>`;
+  }).join('');
+
+  // Urgent preview (top 3)
+  const urgents = cs.filter(c => isUrgent(c)).slice(0, 3);
+  document.getElementById('urgent-count-t').textContent = `⚠️ ${urgent} عميل يحتاج متابعة`;
+  const up = document.getElementById('urgent-preview');
+  if (urgents.length === 0) {
+    up.innerHTML = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">🎉 لا يوجد متابعات عاجلة</div>`;
+    return;
+  }
+  up.innerHTML = urgents.map(c => {
+    const cfg = STAGES[c.status] || {};
+    const reason = c.nextFollow && c.nextFollow <= getToday()
+      ? `موعد متابعة: ${c.nextFollow}`
+      : `${c.status} منذ ${daysDiff(c.lastContact)} يوم`;
+    return `<div class="task-row">
+      <div class="task-info">
+        <div class="t-name">${c.name} — ${c.shop || ''}</div>
+        <div class="t-reason">${cfg.icon||''} ${reason}</div>
+      </div>
+      <a class="btn-wa" href="${waLink(c)}" target="_blank">📲 واتساب</a>
+    </div>`;
+  }).join('');
+}
+
+function renderCustomers() {
+  const filter = STATE.activeFilter;
+  const search = (document.getElementById('search-inp')||{}).value||'';
+
+  // Pills
+  const pillsEl = document.getElementById('stage-pills');
+  const allStages = ['الكل', ...STAGE_KEYS];
+  pillsEl.innerHTML = allStages.map(s => {
+    const cfg = STAGES[s];
+    const isActive = s === filter;
+    const cnt = s === 'الكل' ? STATE.customers.length : STATE.customers.filter(c=>c.status===s).length;
+    const style = isActive && cfg ? `background:${cfg.color}` : '';
+    return `<button class="pill ${isActive?'active':''}" style="${style}" onclick="setFilter('${s}')">${s} (${cnt})</button>`;
+  }).join('');
+
+  let cs = STATE.customers;
+  if (filter !== 'الكل') cs = cs.filter(c => c.status === filter);
+  if (search) {
+    const q = search.toLowerCase();
+    cs = cs.filter(c =>
+      (c.name||'').toLowerCase().includes(q) ||
+      (c.shop||'').toLowerCase().includes(q) ||
+      (c.area||'').toLowerCase().includes(q) ||
+      (c.phone||'').includes(q)
+    );
+  }
+
+  const el = document.getElementById('customer-list');
+  if (cs.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">🔍</div><div class="empty-t">لا يوجد عملاء مطابقون</div></div>`;
+    return;
+  }
+
+  el.innerHTML = cs.map(c => {
+    const cfg = STAGES[c.status] || { color: '#64748b', icon: '?' };
+    const urg = isUrgent(c);
+    const lastCon = c.lastContact ? `آخر تواصل: ${c.lastContact}` : 'لم يتم التواصل';
+    return `<div class="ccard" style="border-right:3px solid ${cfg.color}">
+      ${urg ? '<span class="urgent-dot"></span>' : ''}
+      <div class="ccard-hdr">
+        <div>
+          <div class="c-name">${c.name}</div>
+          <div class="c-shop">${c.shop || '—'}</div>
+          <div class="c-area">${c.area || ''} ${c.type ? '· '+c.type : ''}</div>
+        </div>
+        <span class="sbadge" style="color:${cfg.color};border-color:${cfg.color}">${cfg.icon} ${c.status}</span>
+      </div>
+      <div class="ccard-body">
+        <div class="c-meta">
+          <span>${lastCon}</span>
+          ${c.nextFollow ? `<span>متابعة: ${c.nextFollow}</span>` : ''}
+          ${c.lastOrder ? `<span>آخر طلب: ${Number(c.lastOrder).toLocaleString('ar')} ج</span>` : ''}
+        </div>
+        <div class="c-acts">
+          <a class="btn-wa" href="${waLink(c)}" target="_blank">📲</a>
+          <button class="btn-edit" onclick="openEditModal('${c.id}')">✏️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderTasks() {
+  const urgent = STATE.customers.filter(c => isUrgent(c));
+  const today = urgent.filter(c => c.nextFollow === getToday());
+  const overdue = urgent.filter(c => c.nextFollow && c.nextFollow < getToday());
+  const byStage = urgent.filter(c => !c.nextFollow || c.nextFollow > getToday());
+
+  document.getElementById('task-stats').innerHTML = `
+    <div class="stat-mini"><div class="stat-mini-n" style="color:var(--lost)">${urgent.length}</div><div class="stat-mini-l">إجمالي المهام</div></div>
+    <div class="stat-mini"><div class="stat-mini-n" style="color:var(--gold)">${today.length}</div><div class="stat-mini-l">موعد اليوم</div></div>
+    <div class="stat-mini"><div class="stat-mini-n" style="color:var(--ordered)">${byStage.length}</div><div class="stat-mini-l">حسب المرحلة</div></div>
+  `;
+
+  const el = document.getElementById('task-list');
+  if (urgent.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">لا توجد مهام اليوم، أنجزت كل شيء!</div></div>`;
+    return;
+  }
+
+  // Sort: today's scheduled first, then overdue, then by stage
+  const sorted = [...today, ...overdue, ...byStage];
+
+  el.innerHTML = sorted.map(c => {
+    const cfg = STAGES[c.status] || {};
+    let reason = '';
+    let priority = 'عادي';
+    if (c.nextFollow === getToday()) { reason = `📅 موعد متابعة اليوم`; priority = '🔥 عاجل'; }
+    else if (c.nextFollow && c.nextFollow < getToday()) { reason = `⏰ موعد متابعة فات (${c.nextFollow})`; priority = '⚠️ متأخر'; }
+    else { reason = `${cfg.icon||''} ${c.status} منذ ${daysDiff(c.lastContact)} يوم`; priority = 'متابعة دورية'; }
+
+    const msg = getWAMsg(c);
+    return `<div class="task-card" style="border-right:3px solid ${cfg.color}">
+      <div class="task-card-hdr">
+        <div>
+          <div class="t-name">${c.name} — <span style="color:var(--muted)">${c.shop||''}</span></div>
+          <div class="t-reason" style="margin-top:3px">${reason}</div>
+          ${c.area ? `<div class="t-reason">📍 ${c.area}</div>` : ''}
+        </div>
+        <span style="font-size:10px;color:var(--muted);white-space:nowrap">${priority}</span>
+      </div>
+      <div class="task-card-body">
+        <div class="tc-msg">${msg.replace(/\n/g,'<br>')}</div>
+        <div class="tc-acts">
+          <a class="btn-wa" href="${waLink(c)}" target="_blank">📲 إرسال واتساب</a>
+          <button class="btn-copy" onclick="copyMsg(\`${msg.replace(/`/g,"'")}\`)">📋 نسخ الرسالة</button>
+          <button class="btn-edit" onclick="openEditModal('${c.id}');closeTaskView()">✏️ تحديث</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateBadge() {
+  const cnt = STATE.customers.filter(c => isUrgent(c)).length;
+  const badge = document.getElementById('task-badge');
+  badge.textContent = cnt;
+  badge.style.display = cnt > 0 ? 'block' : 'none';
+}
+
+// ============================
+// NAVIGATION
+// ============================
+function switchTab(name) {
+  STATE.activeTab = name;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nbtn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('nb-' + name).classList.add('active');
+  if (name === 'settings') {
+    document.getElementById('s-url').value = STATE.apiUrl;
+    document.getElementById('s-agent').value = STATE.agentName;
+    loadMsgEditor();
+  }
+}
+
+function setFilter(s) {
+  STATE.activeFilter = s;
+  renderCustomers();
+}
+
+function filterCustomers() { renderCustomers(); }
+
+// ============================
+// MODALS
+// ============================
+function openAddModal() { switchTab('add'); }
+
+function openEditModal(id) {
+  const c = STATE.customers.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('m-id').value = id;
+  document.getElementById('m-title').textContent = c.name + ' — ' + (c.shop||'');
+  document.getElementById('m-name').value = c.name || '';
+  document.getElementById('m-shop').value = c.shop || '';
+  document.getElementById('m-phone').value = c.phone || '';
+  document.getElementById('m-area').value = c.area || '';
+  document.getElementById('m-follow').value = c.nextFollow || '';
+  document.getElementById('m-order').value = c.lastOrder || '';
+  document.getElementById('m-notes').value = c.notes || '';
+
+  // Stage selector
+  const stEl = document.getElementById('m-stages');
+  stEl.innerHTML = STAGE_KEYS.map(s => {
+    const cfg = STAGES[s];
+    const sel = c.status === s;
+    return `<button class="sstage ${sel?'sel':''}" 
+      style="${sel ? `background:${cfg.color};border-color:${cfg.color}` : `border-color:${cfg.color};color:${cfg.color}`}"
+      onclick="selectStage(this,'${s}')">${cfg.icon} ${s}</button>`;
+  }).join('');
+
+  document.getElementById('modal-edit').classList.add('open');
+}
+
+function selectStage(btn, stage) {
+  document.querySelectorAll('.sstage').forEach(b => {
+    const s = b.textContent.trim().replace(/^.\s/,'');
+    const cfg = STAGES[s] || {};
+    b.classList.remove('sel');
+    b.style.background = '';
+    b.style.color = cfg.color || '';
+    b.style.borderColor = cfg.color || '';
+  });
+  const cfg = STAGES[stage] || {};
+  btn.classList.add('sel');
+  btn.style.background = cfg.color || '';
+  btn.style.color = '#0a0a0a';
+  btn.dataset.stage = stage;
+}
+
+function closeModal() {
+  document.getElementById('modal-edit').classList.remove('open');
+}
+
+function closeTaskView() {
+  document.getElementById('modal-edit').classList.remove('open');
+}
+
+async function saveEdit() {
+  const id = document.getElementById('m-id').value;
+  const selStage = document.querySelector('.sstage.sel');
+  const status = selStage ? selStage.dataset.stage || selStage.textContent.trim().replace(/^.\s/,'') : '';
+  const updates = {
+    name: document.getElementById('m-name').value,
+    shop: document.getElementById('m-shop').value,
+    phone: document.getElementById('m-phone').value,
+    area: document.getElementById('m-area').value,
+    status: status,
+    nextFollow: document.getElementById('m-follow').value,
+    lastOrder: document.getElementById('m-order').value,
+    lastContact: getToday(),
+    notes: document.getElementById('m-notes').value,
+  };
+  closeModal();
+  await updateCustomerAPI(id, updates);
+}
+
+// ============================
+// ADD CUSTOMER
+// ============================
+async function submitAddCustomer() {
+  const name = document.getElementById('f-name').value.trim();
+  const shop = document.getElementById('f-shop').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  if (!name || !phone) { toast('⚠️ اسم العميل والهاتف مطلوبان', 'error'); return; }
+  const customer = {
+    name, shop, phone,
+    area: document.getElementById('f-area').value.trim(),
+    type: document.getElementById('f-type').value,
+    source: document.getElementById('f-source').value,
+    agent: document.getElementById('f-agent').value || STATE.agentName,
+    notes: document.getElementById('f-notes').value.trim(),
+    status: 'جديد',
+    regDate: getToday(),
+    lastContact: '',
+    nextFollow: '',
+    lastOrder: 0,
+    total: 0,
+  };
+  await addCustomerAPI(customer);
+  // Clear form
+  ['f-name','f-shop','f-phone','f-area','f-notes'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('f-type').value='';
+  document.getElementById('f-source').value='';
+  switchTab('customers');
+}
+
+// ============================
+// SETTINGS & SETUP
+// ============================
+function saveSetup() {
+  const url = document.getElementById('setup-url').value.trim();
+  const agent = document.getElementById('setup-agent').value.trim();
+  if (!url) { toast('أدخل رابط Apps Script', 'error'); return; }
+  STATE.apiUrl = url;
+  STATE.agentName = agent || 'المسؤول';
+  localStorage.setItem('sultan_url', url);
+  localStorage.setItem('sultan_agent', STATE.agentName);
+  launchApp();
+  fetchCustomers();
+}
+
+function loadDemo() {
+  STATE.isDemo = true;
+  STATE.apiUrl = 'demo';
+  STATE.agentName = 'سلطان';
+  STATE.customers = DEMO_DATA;
+  document.getElementById('demo-badge').style.display = 'block';
+  launchApp();
+  renderAll();
+}
+
+function saveSettings() {
+  STATE.apiUrl = document.getElementById('s-url').value.trim();
+  STATE.agentName = document.getElementById('s-agent').value.trim();
+  localStorage.setItem('sultan_url', STATE.apiUrl);
+  localStorage.setItem('sultan_agent', STATE.agentName);
+  toast('✅ تم حفظ الإعدادات', 'success');
+}
+
+function launchApp() {
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('f-agent').value = STATE.agentName;
+  document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('ar-EG', {weekday:'long',day:'numeric',month:'long'});
+}
+
+async function refreshData() {
+  toast('⏳ جاري التحديث...');
+  await fetchCustomers();
+  toast('✅ تم التحديث', 'success');
+}
+
+// ============================
+// UTILITIES
+// ============================
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' '+type : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function copyMsg(msg) {
+  navigator.clipboard.writeText(msg).then(() => toast('✅ تم نسخ الرسالة', 'success'));
+}
+
+function exportCSV() {
+  const headers = ['الاسم','المحل','الهاتف','المنطقة','النوع','الحالة','آخر تواصل','إجمالي المشتريات','المندوب'];
+  const rows = STATE.customers.map(c => [
+    c.name, c.shop, c.phone, c.area, c.type, c.status,
+    c.lastContact, c.total, c.agent
+  ].map(v => `"${(v||'').toString().replace(/"/g,'""')}"`));
+  const csv = '\uFEFF' + [headers, ...rows].map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = `sultan_crm_${getToday()}.csv`;
+  a.click();
+}
+
+// ============================
+// DEMO DATA
+// ============================
+const DEMO_DATA = [
+  {id:'D1',name:'أحمد محمود',shop:'بقالة النور',phone:'01012345678',area:'سيدي بشر',type:'بقالة',status:'طلب أسعار',lastContact:'2026-06-23',nextFollow:'2026-06-26',lastOrder:0,total:0,agent:'سلطان',notes:'مهتم بالشيبسي والعصائر',regDate:'2026-06-20',source:'مندوب'},
+  {id:'D2',name:'محمد علي',shop:'سوبر الخليج',phone:'01123456789',area:'محرم بك',type:'سوبر ماركت',status:'اشترى',lastContact:'2026-06-06',nextFollow:'2026-06-26',lastOrder:3500,total:3500,agent:'سلطان',notes:'طلب شهري منتظم',regDate:'2026-05-15',source:'واتساب'},
+  {id:'D3',name:'خالد إبراهيم',shop:'ميني ماركت الرحمة',phone:'01234567890',area:'العجمي',type:'ميني ماركت',status:'جديد',lastContact:'',nextFollow:'',lastOrder:0,total:0,agent:'سلطان',notes:'',regDate:'2026-06-25',source:'توصية'},
+  {id:'D4',name:'سامي حسن',shop:'محل الأمل',phone:'01098765432',area:'المنتزه',type:'بقالة',status:'مهتم',lastContact:'2026-06-22',nextFollow:'2026-06-27',lastOrder:0,total:0,agent:'سلطان',notes:'عايز مواد تنظيف وسناكس',regDate:'2026-06-18',source:'مندوب'},
+  {id:'D5',name:'وليد فاروق',shop:'كيوسك الكورنيش',phone:'01156789012',area:'كفر عبده',type:'كيوسك',status:'تم التواصل',lastContact:'2026-06-20',nextFollow:'',lastOrder:0,total:0,agent:'سلطان',notes:'',regDate:'2026-06-19',source:'زيارة مباشرة'},
+  {id:'D6',name:'رامي سعد',shop:'سوبر ماركت النيل',phone:'01267890123',area:'سموحة',type:'سوبر ماركت',status:'اشترى',lastContact:'2026-06-10',nextFollow:'2026-06-28',lastOrder:7200,total:7200,agent:'سلطان',notes:'عميل مميز، طلبات كبيرة',regDate:'2026-05-20',source:'واتساب'},
+  {id:'D7',name:'إيهاب نصر',shop:'بقالة الفردوس',phone:'01378901234',area:'لوران',type:'بقالة',status:'خسرناه',lastContact:'2026-06-01',nextFollow:'',lastOrder:800,total:800,agent:'سلطان',notes:'اشكا من السعر',regDate:'2026-05-10',source:'مندوب'},
+  {id:'D8',name:'طارق عصام',shop:'محل البيت',phone:'01489012345',area:'إسكندرية الجديدة',type:'بقالة',status:'جديد',lastContact:'',nextFollow:'',lastOrder:0,total:0,agent:'سلطان',notes:'',regDate:'2026-06-26',source:'سوشيال ميديا'},
+];
+
+// ============================
+// BACKUP & RESTORE
+// ============================
+function exportBackup() {
+  const backup = {
+    app: 'Sultan Sales Control',
+    version: '1.0',
+    exported: new Date().toISOString(),
+    settings: {
+      apiUrl: STATE.apiUrl,
+      agentName: STATE.agentName,
+    }
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sultan_backup_' + getToday() + '.json';
+  a.click();
+  toast('✅ تم تصدير النسخة الاحتياطية', 'success');
+}
+
+function importBackup() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      if (!backup.settings) { toast('❌ ملف غير صالح', 'error'); return; }
+      STATE.apiUrl   = backup.settings.apiUrl   || '';
+      STATE.agentName= backup.settings.agentName|| '';
+      localStorage.setItem('sultan_url',   STATE.apiUrl);
+      localStorage.setItem('sultan_agent', STATE.agentName);
+      if (document.getElementById('s-url'))   document.getElementById('s-url').value   = STATE.apiUrl;
+      if (document.getElementById('s-agent')) document.getElementById('s-agent').value = STATE.agentName;
+      toast('✅ تم استيراد الإعدادات بنجاح', 'success');
+      // If we have a URL and app is visible, fetch data
+      if (STATE.apiUrl && document.getElementById('app').style.display !== 'none') {
+        fetchCustomers();
+      } else if (STATE.apiUrl) {
+        launchApp();
+        fetchCustomers();
+      }
+    } catch(err) {
+      toast('❌ ملف غير صالح أو تالف', 'error');
+    }
+  };
+  input.click();
+}
+
+// ============================
+// PWA — SERVICE WORKER
+// ============================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('Sultan SW: registered'))
+      .catch(err => console.log('Sultan SW: failed', err));
+  });
+}
+
+// PWA Install Prompt
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstall = e;
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstall = null;
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'none';
+  toast('✅ تم تثبيت التطبيق على التليفون', 'success');
+});
+
+function installPWA() {
+  if (!deferredInstall) {
+    toast('افتح من Chrome وجرب تاني', 'error');
+    return;
+  }
+  deferredInstall.prompt();
+  deferredInstall.userChoice.then(r => {
+    if (r.outcome === 'accepted') toast('✅ جاري التثبيت...', 'success');
+    deferredInstall = null;
+  });
+}
+
+// ============================
+// INIT
+// ============================
+(function init() {
+  if (STATE.apiUrl) {
+    launchApp();
+    fetchCustomers();
+  }
+})();
+</script>
+</body>
+</html>
