@@ -11,6 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Sultan Sales Control</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg: #f0f5ff;
@@ -37,7 +38,7 @@
 html,body{height:100%;overflow:hidden}
 body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(--bg);color:var(--text);direction:rtl;font-size:14px;line-height:1.5}
 
-/* SETUP */
+/* SETUP / LOGIN */
 #setup{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:linear-gradient(145deg,#eff6ff 0%,#dbeafe 60%,#e0e7ff 100%)}
 .s-logo{font-size:52px;margin-bottom:8px;text-align:center}
 .s-title{font-size:22px;font-weight:900;color:#1d4ed8;text-align:center;letter-spacing:-0.5px}
@@ -49,9 +50,8 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
 .fhint{font-size:10px;color:var(--muted);margin-top:-10px;margin-bottom:14px}
 .btn-gold{width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:var(--rs);padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;transition:opacity .2s;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
 .btn-gold:active{opacity:.85}
-.s-demo{text-align:center;margin-top:14px;font-size:12px;color:var(--muted)}
-.s-demo a{color:#2563eb;text-decoration:none;cursor:pointer}
-.s-demo a:hover{text-decoration:underline}
+.btn-gold:disabled{opacity:.6;cursor:default}
+.s-err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:var(--rs);padding:9px 12px;font-size:12px;margin-bottom:14px;display:none}
 
 /* APP SHELL */
 #app{display:none;flex-direction:column;height:100vh;overflow:hidden}
@@ -89,7 +89,7 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
 
 /* PIPELINE */
 .sec-title{font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:8px;letter-spacing:0.5px;text-transform:uppercase}
-.pipe-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:14px}
+.pipe-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:14px}
 .pstep{background:#fff;border:1px solid var(--border);border-radius:var(--rs);padding:10px 5px;text-align:center;box-shadow:0 1px 4px rgba(37,99,235,0.05)}
 .pstep-n{font-size:20px;font-weight:900;line-height:1}
 .pstep-l{font-size:9px;color:var(--muted);margin-top:3px}
@@ -114,6 +114,9 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
 .pills::-webkit-scrollbar{display:none}
 .pill{background:#fff;border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:11px;cursor:pointer;white-space:nowrap;color:var(--muted);font-family:inherit;transition:all .2s;font-weight:600}
 .pill.active{font-weight:700;color:#fff}
+.view-toggle{display:flex;gap:6px;margin-bottom:9px}
+.vt-btn{flex:1;background:#fff;border:1px solid var(--border);border-radius:var(--rs);padding:8px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);font-family:inherit}
+.vt-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 
 /* CUSTOMER CARD */
 .ccard{background:#fff;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden;position:relative;box-shadow:0 2px 8px rgba(37,99,235,0.06)}
@@ -192,24 +195,24 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
   .kpi-grid{grid-template-columns:repeat(4,1fr)}
   .fgrid{grid-template-columns:1fr 1fr 1fr}
   .stage-sel{grid-template-columns:repeat(6,1fr)}
+  .pipe-grid{grid-template-columns:repeat(6,1fr)}
 }
 </style>
 </head>
 <body>
 
-<!-- ======= SETUP SCREEN ======= -->
+<!-- ======= LOGIN SCREEN ======= -->
 <div id="setup">
   <div class="s-logo">🏪</div>
   <div class="s-title">Sultan Sales Control</div>
-  <div class="s-sub">نظام إدارة المبيعات — شركة سلطان للمواد الغذائية</div>
+  <div class="s-sub">نظام إدارة العملاء المحتملين — شركة سلطان للمواد الغذائية</div>
   <div class="s-card">
-    <label class="flabel">رابط Google Apps Script</label>
-    <input class="finput" id="setup-url" type="url" placeholder="https://script.google.com/macros/s/.../exec">
-    <div class="fhint">ارفع Apps Script وادخل رابط التنفيذ هنا</div>
-    <label class="flabel">اسمك (المسؤول)</label>
-    <input class="finput" id="setup-agent" placeholder="مثال: سلطان">
-    <button class="btn-gold" onclick="saveSetup()">🚀 ابدأ النظام</button>
-    <div class="s-demo"><a onclick="loadDemo()">أو افتح بيانات تجريبية (Demo)</a></div>
+    <div class="s-err" id="login-err"></div>
+    <label class="flabel">البريد الإلكتروني</label>
+    <input class="finput" id="login-email" type="email" placeholder="you@example.com" autocomplete="username">
+    <label class="flabel">كلمة المرور</label>
+    <input class="finput" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="btn-gold" id="login-btn" onclick="doLogin()">🚀 تسجيل الدخول</button>
   </div>
 </div>
 
@@ -226,7 +229,7 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
     <div class="hdr-actions">
       <button class="btn-sm" id="install-btn" onclick="installPWA()" style="display:none;background:rgba(255,255,255,0.2);gap:4px">📲 تثبيت</button>
       <button class="btn-sm gold" onclick="refreshData()">⟳ تحديث</button>
-      <button class="btn-sm" id="demo-badge" style="display:none;background:rgba(248,113,113,.1);border-color:var(--lost);color:var(--lost)">DEMO</button>
+      <button class="btn-sm" onclick="doLogout()">🚪 خروج</button>
     </div>
   </header>
 
@@ -234,7 +237,7 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
     <!-- TAB 1: DASHBOARD -->
     <div class="tab active" id="tab-home">
       <div class="kpi-grid" id="kpi-grid">
-        <div class="kpi" style="--c:var(--gold)"><div class="kpi-ico">👥</div><div class="kpi-n" id="kpi-total">0</div><div class="kpi-l">إجمالي العملاء</div></div>
+        <div class="kpi" style="--c:var(--gold)"><div class="kpi-ico">👥</div><div class="kpi-n" id="kpi-total">0</div><div class="kpi-l">عملاء محتملون</div></div>
         <div class="kpi" style="--c:var(--new)"><div class="kpi-ico">🆕</div><div class="kpi-n" id="kpi-new">0</div><div class="kpi-l">عملاء جدد</div></div>
         <div class="kpi" style="--c:var(--ordered)"><div class="kpi-ico">✅</div><div class="kpi-n" id="kpi-ordered">0</div><div class="kpi-l">اشتروا</div></div>
         <div class="kpi" style="--c:var(--lost)"><div class="kpi-ico">⚠️</div><div class="kpi-n" id="kpi-urgent">0</div><div class="kpi-l">تحتاج متابعة</div></div>
@@ -253,7 +256,7 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
       <div class="urgent-box">
         <div class="urgent-hdr">
           <span class="urgent-hdr-t" id="urgent-count-t">⚠️ 0 عملاء يحتاجون متابعة</span>
-          <button class="btn-sm" onclick="switchTab('tasks')">عرض الكل</button>
+          <button class="btn-sm" onclick="switchTab('tasks')" style="background:var(--blue-dim);color:var(--blue);border-color:var(--border)">عرض الكل</button>
         </div>
         <div id="urgent-preview"></div>
       </div>
@@ -261,9 +264,13 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
 
     <!-- TAB 2: CUSTOMERS -->
     <div class="tab" id="tab-customers">
+      <div class="view-toggle">
+        <button class="vt-btn" id="vt-mine" onclick="setView('mine')">👤 عملائي</button>
+        <button class="vt-btn" id="vt-all" onclick="setView('all')">👥 الكل</button>
+      </div>
       <div class="search-row">
         <input class="sinput" id="search-inp" placeholder="🔍 ابحث عن عميل أو محل..." oninput="filterCustomers()">
-        <button class="btn-sm" onclick="openAddModal()">+ إضافة</button>
+        <button class="btn-sm" style="background:var(--blue);color:#fff;border-color:var(--blue)" onclick="openAddModal()">+ إضافة</button>
       </div>
       <div class="pills" id="stage-pills"></div>
       <div id="customer-list"><div class="spin">⏳ جاري التحميل...</div></div>
@@ -277,7 +284,7 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
 
     <!-- TAB 4: ADD CUSTOMER -->
     <div class="tab" id="tab-add">
-      <div class="sec-title">➕ إضافة عميل جديد</div>
+      <div class="sec-title">➕ إضافة عميل محتمل جديد</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px">
         <div class="fgrid">
           <div class="form-field">
@@ -285,7 +292,7 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
             <input class="finput" id="f-name" placeholder="الاسم الأول" style="margin-bottom:0">
           </div>
           <div class="form-field">
-            <label class="flabel">اسم المحل *</label>
+            <label class="flabel">اسم المحل</label>
             <input class="finput" id="f-shop" placeholder="اسم المحل" style="margin-bottom:0">
           </div>
           <div class="form-field">
@@ -321,10 +328,6 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
             </select>
           </div>
           <div class="form-field full">
-            <label class="flabel">المندوب المسؤول</label>
-            <input class="finput" id="f-agent" style="margin-bottom:0">
-          </div>
-          <div class="form-field full">
             <label class="flabel">ملاحظات</label>
             <textarea class="fta" id="f-notes" placeholder="أي ملاحظات مهمة..."></textarea>
           </div>
@@ -337,39 +340,24 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
     <!-- TAB 5: SETTINGS -->
     <div class="tab" id="tab-settings">
       <div class="sset">
-        <div class="sset-title">الإعدادات</div>
-        <div class="form-field" style="margin-bottom:12px">
-          <label class="flabel">رابط Apps Script</label>
-          <input class="finput" id="s-url" style="margin-bottom:0">
-        </div>
-        <div class="form-field" style="margin-bottom:12px">
-          <label class="flabel">اسم المسؤول</label>
-          <input class="finput" id="s-agent" style="margin-bottom:0">
-        </div>
-        <button class="btn-gold" onclick="saveSettings()" style="margin-top:4px">💾 حفظ الإعدادات</button>
-      </div>
-      <div class="sset">
-        <div class="sset-title">💾 نسخ احتياطي</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">احفظ إعداداتك وارجعلها على أي جهاز أو تليفون بسهولة</p>
-        <div style="display:flex;gap:8px">
-          <button class="btn-gold" onclick="exportBackup()" style="flex:1;font-size:13px">💾 تصدير النسخة</button>
-          <button class="btn-sm" onclick="importBackup()" style="flex:1;padding:12px;background:#eff6ff;border-color:var(--border);color:var(--text);font-weight:700">📥 استيراد</button>
-        </div>
+        <div class="sset-title">حسابي</div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:4px" id="s-my-name"></p>
+        <p style="font-size:11px;color:var(--muted)" id="s-my-email"></p>
       </div>
       <div class="sset">
         <div class="sset-title">تصدير البيانات</div>
         <div style="display:flex;gap:8px">
-          <button class="btn-sm" onclick="exportCSV()" style="flex:1;padding:10px">📊 تصدير CSV</button>
-          <button class="btn-sm" onclick="refreshData()" style="flex:1;padding:10px">⟳ إعادة تحميل</button>
+          <button class="btn-sm" onclick="exportCSV()" style="flex:1;padding:10px;background:var(--surface2);color:var(--text);border-color:var(--border)">📊 تصدير CSV</button>
+          <button class="btn-sm" onclick="refreshData()" style="flex:1;padding:10px;background:var(--surface2);color:var(--text);border-color:var(--border)">⟳ إعادة تحميل</button>
         </div>
       </div>
       <div class="sset">
-        <div class="sset-title">✏️ تعديل رسائل الواتساب</div>
+        <div class="sset-title">✏️ رسائل الواتساب (مشتركة مع كل الأجهزة)</div>
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#1e40af;line-height:1.8">
           <strong>المتغيرات المتاحة:</strong><br>
           <code>{name}</code> = اسم العميل &nbsp;|&nbsp;
           <code>{shop}</code> = اسم المحل &nbsp;|&nbsp;
-          <code>{agent}</code> = اسم المندوب
+          <code>{agent}</code> = اسم المسؤول
         </div>
         <div id="msg-editor">
           <div style="margin-bottom:12px">
@@ -394,8 +382,8 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
           </div>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn-gold" onclick="saveMsgs()" style="flex:2">💾 حفظ الرسائل</button>
-          <button class="btn-sm" onclick="resetMsgs()" style="flex:1;padding:12px;color:#dc2626;border-color:#fecaca">↩️ استعادة</button>
+          <button class="btn-gold" onclick="saveMsgs()" style="flex:2">💾 حفظ الرسائل (للكل)</button>
+          <button class="btn-sm" onclick="resetMsgs()" style="flex:1;padding:12px;color:#dc2626;border-color:#fecaca;background:#fff">↩️ استعادة</button>
         </div>
       </div>
 
@@ -403,8 +391,8 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
         <div class="sset-title">حول النظام</div>
         <div style="font-size:12px;color:var(--muted);line-height:2">
           <div>Sultan Sales Control System</div>
-          <div>الإصدار 1.0 — المرحلة الأولى</div>
-          <div>CRM + مهام المندوب + واتساب</div>
+          <div>الإصدار 2.0 — متصل بقاعدة بيانات Sultan ERP مباشرة</div>
+          <div>Leads + متابعات + واتساب</div>
         </div>
       </div>
     </div>
@@ -480,16 +468,23 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
 
 <script>
 // ============================
+// SUPABASE — نفس مشروع Sultan ERP بالظبط (المفتاح public/anon، الحماية عبر RLS)
+// ============================
+const SUPABASE_URL = 'https://fanaozxqlodzfdgstwaz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_xt2yyOGAwKhFRlR6WM9a8Q_T9UOXPBi';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ============================
 // STATE & CONFIG
 // ============================
 const STATE = {
-  customers: [],
-  isDemo: false,
-  loading: false,
+  leads: [],
+  profiles: [],
+  currentUser: null, // { id, name, email }
   activeTab: 'home',
   activeFilter: 'الكل',
-  apiUrl: localStorage.getItem('sultan_url') || '',
-  agentName: localStorage.getItem('sultan_agent') || 'المندوب',
+  view: 'mine', // 'mine' | 'all'
+  templates: {},
 };
 
 const STAGES = {
@@ -514,17 +509,22 @@ function daysDiff(dateStr) {
   return Math.floor((t - d) / 86400000);
 }
 
-function isUrgent(c) {
-  if (c.status === 'خسرناه') return false;
-  if (c.nextFollow && c.nextFollow <= getToday()) return true;
-  const cfg = STAGES[c.status];
+function isUrgent(l) {
+  if (l.status === 'خسرناه' || l.converted_customer_id) return false;
+  if (l.next_follow_up_date && l.next_follow_up_date <= getToday()) return true;
+  const cfg = STAGES[l.status];
   if (!cfg || !cfg.days) return false;
-  return daysDiff(c.lastContact) >= cfg.days;
+  return daysDiff(l.last_contact_date) >= cfg.days;
+}
+
+function agentNameOf(l) {
+  return STATE.profiles.find(p => p.id === l.assigned_to)?.name || STATE.currentUser?.name || 'سلطان';
 }
 
 // ============================================================
-// رسائل الواتساب — قابلة للتعديل من الإعدادات
-// استخدم: {name} = اسم العميل | {shop} = اسم المحل | {agent} = اسم المندوب
+// رسائل الواتساب — قابلة للتعديل من الإعدادات، متخزّنة مركزيًا في
+// app_settings (key=crm_whatsapp_templates) — نفس القوالب المستخدمة
+// في صفحة CRM بالـ ERP على الديسك توب.
 // ============================================================
 const DEFAULT_MSGS = {
   'جديد':
@@ -566,111 +566,137 @@ const DEFAULT_MSGS = {
 جاهزين للتوريد في أي وقت 🚚`,
 };
 
-function getWAMsg(c) {
-  const saved = JSON.parse(localStorage.getItem('sultan_msgs') || '{}');
-  const template = saved[c.status] || DEFAULT_MSGS[c.status] || DEFAULT_MSGS['جديد'];
+function getWAMsg(l) {
+  const template = STATE.templates[l.status] || DEFAULT_MSGS[l.status] || DEFAULT_MSGS['جديد'];
   return template
-    .replace(/{name}/g,  c.name  || 'العميل')
-    .replace(/{shop}/g,  c.shop  || 'المحل')
-    .replace(/{agent}/g, STATE.agentName || 'سلطان');
+    .replace(/{name}/g,  l.name  || 'العميل')
+    .replace(/{shop}/g,  l.shop  || 'المحل')
+    .replace(/{agent}/g, agentNameOf(l));
 }
 
 function loadMsgEditor() {
-  const saved = JSON.parse(localStorage.getItem('sultan_msgs') || '{}');
   ['جديد','تم التواصل','مهتم','طلب أسعار','اشترى'].forEach(stage => {
     const el = document.getElementById('msg-' + stage.replace(/ /g,'-'));
-    if (el) el.value = saved[stage] || DEFAULT_MSGS[stage] || '';
+    if (el) el.value = STATE.templates[stage] || DEFAULT_MSGS[stage] || '';
   });
 }
 
-function saveMsgs() {
+async function saveMsgs() {
   const msgs = {};
   ['جديد','تم التواصل','مهتم','طلب أسعار','اشترى'].forEach(stage => {
     const el = document.getElementById('msg-' + stage.replace(/ /g,'-'));
     if (el && el.value.trim()) msgs[stage] = el.value.trim();
   });
-  localStorage.setItem('sultan_msgs', JSON.stringify(msgs));
-  toast('✅ تم حفظ الرسائل', 'success');
+  try {
+    const { error } = await sb.from('app_settings').upsert({ key: 'crm_whatsapp_templates', value: msgs, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    STATE.templates = msgs;
+    toast('✅ تم حفظ الرسائل — هتظهر لكل الأجهزة', 'success');
+  } catch (e) {
+    toast('❌ فشل الحفظ: ' + e.message, 'error');
+  }
 }
 
 function resetMsgs() {
-  localStorage.removeItem('sultan_msgs');
-  loadMsgEditor();
-  toast('✅ تم استعادة الرسائل الافتراضية', 'success');
+  loadMsgEditor(); // بيرجع لآخر نسخة متزامنة، والقيم الافتراضية لو مفيش
+  ['جديد','تم التواصل','مهتم','طلب أسعار','اشترى'].forEach(stage => {
+    const el = document.getElementById('msg-' + stage.replace(/ /g,'-'));
+    if (el) el.value = DEFAULT_MSGS[stage] || '';
+  });
+  toast('✅ تم استعادة الرسائل الافتراضية (اضغط حفظ لتثبيتها للكل)', 'success');
 }
 
-function waLink(c) {
-  const phone = (c.phone || '').replace(/\D/g,'');
+function waLink(l) {
+  const phone = (l.phone || '').replace(/\D/g,'');
   const intl = phone.startsWith('0') ? '2' + phone : phone;
-  return `https://wa.me/${intl}?text=${encodeURIComponent(getWAMsg(c))}`;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(getWAMsg(l))}`;
 }
 
 // ============================
-// API
+// AUTH
 // ============================
-async function apiGet(params) {
-  if (STATE.isDemo) return null;
-  if (!STATE.apiUrl) return null;
-  const url = STATE.apiUrl + '?' + new URLSearchParams(params).toString();
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  errEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent = 'أدخل الإيميل وكلمة المرور'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = '⏳ جاري الدخول...';
   try {
-    const r = await fetch(url);
-    return await r.json();
-  } catch(e) {
-    toast('خطأ في الاتصال بالسيرفر', 'error');
-    return null;
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    await loadCurrentUser(data.user.id);
+    launchApp();
+    await refreshAll();
+  } catch (e) {
+    errEl.textContent = 'خطأ: ' + (e.message === 'Invalid login credentials' ? 'بيانات الدخول غير صحيحة' : e.message);
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = '🚀 تسجيل الدخول';
   }
 }
 
-async function fetchCustomers() {
-  if (STATE.isDemo) { renderAll(); return; }
-  STATE.loading = true;
-  const res = await apiGet({ action: 'getAll' });
-  STATE.loading = false;
-  if (res && res.customers) {
-    STATE.customers = res.customers;
-    renderAll();
-  }
+async function loadCurrentUser(userId) {
+  const { data } = await sb.from('profiles').select('id,name,email,role').eq('id', userId).single();
+  STATE.currentUser = data || { id: userId, name: 'مستخدم', email: '' };
 }
 
-async function addCustomerAPI(c) {
-  if (STATE.isDemo) {
-    c.id = 'D' + Date.now();
-    c.regDate = getToday();
-    c.status = 'جديد';
-    c.lastContact = '';
-    c.total = 0;
-    STATE.customers.push(c);
-    renderAll();
-    toast('✅ تمت الإضافة (وضع تجريبي)', 'success');
-    return;
-  }
-  const params = { action: 'addCustomer', ...c };
-  const res = await apiGet(params);
-  if (res && res.success) {
-    toast('✅ تمت إضافة العميل', 'success');
-    await fetchCustomers();
-  }
+async function doLogout() {
+  await sb.auth.signOut();
+  location.reload();
 }
 
-async function updateCustomerAPI(id, updates) {
-  if (STATE.isDemo) {
-    const i = STATE.customers.findIndex(c => c.id === id);
-    if (i >= 0) STATE.customers[i] = { ...STATE.customers[i], ...updates };
-    renderAll();
-    toast('✅ تم التحديث (وضع تجريبي)', 'success');
-    return;
-  }
-  const params = { action: 'updateCustomer', id, ...updates };
-  const res = await apiGet(params);
-  if (res && res.success) {
-    toast('✅ تم التحديث', 'success');
-    await fetchCustomers();
-  }
+// ============================
+// DATA
+// ============================
+async function fetchLeads() {
+  const { data, error } = await sb.from('crm_leads').select('*').order('created_at', { ascending: false });
+  if (error) { toast('خطأ في تحميل العملاء: ' + error.message, 'error'); return; }
+  STATE.leads = data || [];
+}
+
+async function fetchProfiles() {
+  const { data } = await sb.from('profiles').select('id,name,role').eq('is_active', true).order('name');
+  STATE.profiles = data || [];
+}
+
+async function fetchTemplates() {
+  const { data } = await sb.from('app_settings').select('value').eq('key', 'crm_whatsapp_templates').maybeSingle();
+  STATE.templates = data?.value || {};
+}
+
+async function refreshAll() {
+  await Promise.all([fetchLeads(), fetchProfiles(), fetchTemplates()]);
+  renderAll();
+}
+
+async function addLeadAPI(l) {
+  const phoneDigits = (l.phone || '').replace(/\D/g, '');
+  const dup = STATE.leads.find(x => (x.phone||'').replace(/\D/g,'').slice(-8) === phoneDigits.slice(-8));
+  if (dup && !confirm(`⚠️ في عميل محتمل بنفس الرقم تقريبًا: "${dup.name}" (${dup.status}).\nتضيف بردو؟`)) return;
+  const { error } = await sb.from('crm_leads').insert({ ...l, assigned_to: STATE.currentUser?.id || null, created_by: STATE.currentUser?.id || null });
+  if (error) { toast('❌ خطأ: ' + error.message, 'error'); return; }
+  toast('✅ تمت إضافة العميل', 'success');
+  await refreshAll();
+}
+
+async function updateLeadAPI(id, updates) {
+  const { error } = await sb.from('crm_leads').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { toast('❌ خطأ: ' + error.message, 'error'); return; }
+  toast('✅ تم التحديث', 'success');
+  await refreshAll();
 }
 
 // ============================
 // RENDER
 // ============================
+function scopedLeads() {
+  return STATE.view === 'mine' && STATE.currentUser?.id
+    ? STATE.leads.filter(l => l.assigned_to === STATE.currentUser.id)
+    : STATE.leads;
+}
+
 function renderAll() {
   renderDashboard();
   renderCustomers();
@@ -679,7 +705,7 @@ function renderAll() {
 }
 
 function renderDashboard() {
-  const cs = STATE.customers;
+  const cs = scopedLeads();
   const total = cs.length;
   const newC = cs.filter(c => c.status === 'جديد').length;
   const ordered = cs.filter(c => c.status === 'اشترى').length;
@@ -695,9 +721,8 @@ function renderDashboard() {
   document.getElementById('conv-from').textContent = total + ' عميل';
   document.getElementById('conv-pct').textContent = pct + '% اشتروا';
 
-  // Pipeline
   const pg = document.getElementById('pipe-grid');
-  const stageNames = ['جديد','تم التواصل','مهتم','طلب أسعار','اشترى'];
+  const stageNames = ['جديد','تم التواصل','مهتم','طلب أسعار','اشترى','خسرناه'];
   pg.innerHTML = stageNames.map(s => {
     const cnt = cs.filter(c => c.status === s).length;
     const p = total > 0 ? Math.round(cnt/total*100) : 0;
@@ -709,7 +734,6 @@ function renderDashboard() {
     </div>`;
   }).join('');
 
-  // Urgent preview (top 3)
   const urgents = cs.filter(c => isUrgent(c)).slice(0, 3);
   document.getElementById('urgent-count-t').textContent = `⚠️ ${urgent} عميل يحتاج متابعة`;
   const up = document.getElementById('urgent-preview');
@@ -719,9 +743,9 @@ function renderDashboard() {
   }
   up.innerHTML = urgents.map(c => {
     const cfg = STAGES[c.status] || {};
-    const reason = c.nextFollow && c.nextFollow <= getToday()
-      ? `موعد متابعة: ${c.nextFollow}`
-      : `${c.status} منذ ${daysDiff(c.lastContact)} يوم`;
+    const reason = c.next_follow_up_date && c.next_follow_up_date <= getToday()
+      ? `موعد متابعة: ${c.next_follow_up_date}`
+      : `${c.status} منذ ${daysDiff(c.last_contact_date)} يوم`;
     return `<div class="task-row">
       <div class="task-info">
         <div class="t-name">${c.name} — ${c.shop || ''}</div>
@@ -732,22 +756,32 @@ function renderDashboard() {
   }).join('');
 }
 
+function setView(v) {
+  STATE.view = v;
+  document.getElementById('vt-mine').classList.toggle('active', v === 'mine');
+  document.getElementById('vt-all').classList.toggle('active', v === 'all');
+  renderAll();
+}
+
 function renderCustomers() {
+  document.getElementById('vt-mine').classList.toggle('active', STATE.view === 'mine');
+  document.getElementById('vt-all').classList.toggle('active', STATE.view === 'all');
+
   const filter = STATE.activeFilter;
   const search = (document.getElementById('search-inp')||{}).value||'';
+  const scope = scopedLeads();
 
-  // Pills
   const pillsEl = document.getElementById('stage-pills');
   const allStages = ['الكل', ...STAGE_KEYS];
   pillsEl.innerHTML = allStages.map(s => {
     const cfg = STAGES[s];
     const isActive = s === filter;
-    const cnt = s === 'الكل' ? STATE.customers.length : STATE.customers.filter(c=>c.status===s).length;
+    const cnt = s === 'الكل' ? scope.length : scope.filter(c=>c.status===s).length;
     const style = isActive && cfg ? `background:${cfg.color}` : '';
     return `<button class="pill ${isActive?'active':''}" style="${style}" onclick="setFilter('${s}')">${s} (${cnt})</button>`;
   }).join('');
 
-  let cs = STATE.customers;
+  let cs = scope;
   if (filter !== 'الكل') cs = cs.filter(c => c.status === filter);
   if (search) {
     const q = search.toLowerCase();
@@ -768,22 +802,22 @@ function renderCustomers() {
   el.innerHTML = cs.map(c => {
     const cfg = STAGES[c.status] || { color: '#64748b', icon: '?' };
     const urg = isUrgent(c);
-    const lastCon = c.lastContact ? `آخر تواصل: ${c.lastContact}` : 'لم يتم التواصل';
+    const lastCon = c.last_contact_date ? `آخر تواصل: ${c.last_contact_date}` : 'لم يتم التواصل';
     return `<div class="ccard" style="border-right:3px solid ${cfg.color}">
       ${urg ? '<span class="urgent-dot"></span>' : ''}
       <div class="ccard-hdr">
         <div>
           <div class="c-name">${c.name}</div>
           <div class="c-shop">${c.shop || '—'}</div>
-          <div class="c-area">${c.area || ''} ${c.type ? '· '+c.type : ''}</div>
+          <div class="c-area">${c.area || ''} ${c.activity_type ? '· '+c.activity_type : ''}</div>
         </div>
         <span class="sbadge" style="color:${cfg.color};border-color:${cfg.color}">${cfg.icon} ${c.status}</span>
       </div>
       <div class="ccard-body">
         <div class="c-meta">
           <span>${lastCon}</span>
-          ${c.nextFollow ? `<span>متابعة: ${c.nextFollow}</span>` : ''}
-          ${c.lastOrder ? `<span>آخر طلب: ${Number(c.lastOrder).toLocaleString('ar')} ج</span>` : ''}
+          ${c.next_follow_up_date ? `<span>متابعة: ${c.next_follow_up_date}</span>` : ''}
+          ${c.last_order_amount ? `<span>آخر طلب: ${Number(c.last_order_amount).toLocaleString('ar')} ج</span>` : ''}
         </div>
         <div class="c-acts">
           <a class="btn-wa" href="${waLink(c)}" target="_blank">📲</a>
@@ -795,10 +829,11 @@ function renderCustomers() {
 }
 
 function renderTasks() {
-  const urgent = STATE.customers.filter(c => isUrgent(c));
-  const today = urgent.filter(c => c.nextFollow === getToday());
-  const overdue = urgent.filter(c => c.nextFollow && c.nextFollow < getToday());
-  const byStage = urgent.filter(c => !c.nextFollow || c.nextFollow > getToday());
+  const scope = scopedLeads();
+  const urgent = scope.filter(c => isUrgent(c));
+  const today = urgent.filter(c => c.next_follow_up_date === getToday());
+  const overdue = urgent.filter(c => c.next_follow_up_date && c.next_follow_up_date < getToday());
+  const byStage = urgent.filter(c => !c.next_follow_up_date || c.next_follow_up_date > getToday());
 
   document.getElementById('task-stats').innerHTML = `
     <div class="stat-mini"><div class="stat-mini-n" style="color:var(--lost)">${urgent.length}</div><div class="stat-mini-l">إجمالي المهام</div></div>
@@ -812,16 +847,15 @@ function renderTasks() {
     return;
   }
 
-  // Sort: today's scheduled first, then overdue, then by stage
   const sorted = [...today, ...overdue, ...byStage];
 
   el.innerHTML = sorted.map(c => {
     const cfg = STAGES[c.status] || {};
     let reason = '';
     let priority = 'عادي';
-    if (c.nextFollow === getToday()) { reason = `📅 موعد متابعة اليوم`; priority = '🔥 عاجل'; }
-    else if (c.nextFollow && c.nextFollow < getToday()) { reason = `⏰ موعد متابعة فات (${c.nextFollow})`; priority = '⚠️ متأخر'; }
-    else { reason = `${cfg.icon||''} ${c.status} منذ ${daysDiff(c.lastContact)} يوم`; priority = 'متابعة دورية'; }
+    if (c.next_follow_up_date === getToday()) { reason = `📅 موعد متابعة اليوم`; priority = '🔥 عاجل'; }
+    else if (c.next_follow_up_date && c.next_follow_up_date < getToday()) { reason = `⏰ موعد متابعة فات (${c.next_follow_up_date})`; priority = '⚠️ متأخر'; }
+    else { reason = `${cfg.icon||''} ${c.status} منذ ${daysDiff(c.last_contact_date)} يوم`; priority = 'متابعة دورية'; }
 
     const msg = getWAMsg(c);
     return `<div class="task-card" style="border-right:3px solid ${cfg.color}">
@@ -846,7 +880,7 @@ function renderTasks() {
 }
 
 function updateBadge() {
-  const cnt = STATE.customers.filter(c => isUrgent(c)).length;
+  const cnt = scopedLeads().filter(c => isUrgent(c)).length;
   const badge = document.getElementById('task-badge');
   badge.textContent = cnt;
   badge.style.display = cnt > 0 ? 'block' : 'none';
@@ -862,8 +896,8 @@ function switchTab(name) {
   document.getElementById('tab-' + name).classList.add('active');
   document.getElementById('nb-' + name).classList.add('active');
   if (name === 'settings') {
-    document.getElementById('s-url').value = STATE.apiUrl;
-    document.getElementById('s-agent').value = STATE.agentName;
+    document.getElementById('s-my-name').textContent = '👤 ' + (STATE.currentUser?.name || '');
+    document.getElementById('s-my-email').textContent = STATE.currentUser?.email || '';
     loadMsgEditor();
   }
 }
@@ -881,7 +915,7 @@ function filterCustomers() { renderCustomers(); }
 function openAddModal() { switchTab('add'); }
 
 function openEditModal(id) {
-  const c = STATE.customers.find(x => x.id === id);
+  const c = STATE.leads.find(x => x.id === id);
   if (!c) return;
   document.getElementById('m-id').value = id;
   document.getElementById('m-title').textContent = c.name + ' — ' + (c.shop||'');
@@ -889,16 +923,15 @@ function openEditModal(id) {
   document.getElementById('m-shop').value = c.shop || '';
   document.getElementById('m-phone').value = c.phone || '';
   document.getElementById('m-area').value = c.area || '';
-  document.getElementById('m-follow').value = c.nextFollow || '';
-  document.getElementById('m-order').value = c.lastOrder || '';
+  document.getElementById('m-follow').value = c.next_follow_up_date || '';
+  document.getElementById('m-order').value = c.last_order_amount || '';
   document.getElementById('m-notes').value = c.notes || '';
 
-  // Stage selector
   const stEl = document.getElementById('m-stages');
   stEl.innerHTML = STAGE_KEYS.map(s => {
     const cfg = STAGES[s];
     const sel = c.status === s;
-    return `<button class="sstage ${sel?'sel':''}" 
+    return `<button class="sstage ${sel?'sel':''}"
       style="${sel ? `background:${cfg.color};border-color:${cfg.color}` : `border-color:${cfg.color};color:${cfg.color}`}"
       onclick="selectStage(this,'${s}')">${cfg.icon} ${s}</button>`;
   }).join('');
@@ -918,7 +951,7 @@ function selectStage(btn, stage) {
   const cfg = STAGES[stage] || {};
   btn.classList.add('sel');
   btn.style.background = cfg.color || '';
-  btn.style.color = '#0a0a0a';
+  btn.style.color = '#fff';
   btn.dataset.stage = stage;
 }
 
@@ -932,21 +965,49 @@ function closeTaskView() {
 
 async function saveEdit() {
   const id = document.getElementById('m-id').value;
+  const lead = STATE.leads.find(x => x.id === id);
   const selStage = document.querySelector('.sstage.sel');
-  const status = selStage ? selStage.dataset.stage || selStage.textContent.trim().replace(/^.\s/,'') : '';
+  const status = selStage ? selStage.dataset.stage || selStage.textContent.trim().replace(/^.\s/,'') : lead?.status;
   const updates = {
     name: document.getElementById('m-name').value,
     shop: document.getElementById('m-shop').value,
     phone: document.getElementById('m-phone').value,
     area: document.getElementById('m-area').value,
     status: status,
-    nextFollow: document.getElementById('m-follow').value,
-    lastOrder: document.getElementById('m-order').value,
-    lastContact: getToday(),
+    next_follow_up_date: document.getElementById('m-follow').value || null,
+    last_order_amount: Number(document.getElementById('m-order').value) || 0,
+    last_contact_date: getToday(),
     notes: document.getElementById('m-notes').value,
   };
   closeModal();
-  await updateCustomerAPI(id, updates);
+  await updateLeadAPI(id, updates);
+  // لو المرحلة بقت "اشترى" ولسه مش متحوّل لعميل حقيقي، اعرض اقتراح التحويل
+  if (status === 'اشترى' && lead && !lead.converted_customer_id) {
+    if (confirm(`✅ العميل "${lead.name}" وصل لمرحلة "اشترى".\nتحوّله لعميل حقيقي في نظام Sultan ERP دلوقتي؟`)) {
+      await convertLeadToCustomer(id);
+    }
+  }
+}
+
+async function convertLeadToCustomer(id) {
+  const lead = STATE.leads.find(l => l.id === id);
+  if (!lead) return;
+  try {
+    const { data: newCust, error } = await sb.from('customers').insert({
+      name: lead.name,
+      phone: lead.phone || null,
+      address: [lead.shop, lead.area].filter(Boolean).join(' — ') || null,
+      balance: 0,
+      is_active: true,
+      created_by: STATE.currentUser?.id || null,
+    }).select().single();
+    if (error) throw error;
+    await sb.from('crm_leads').update({ converted_customer_id: newCust.id, updated_at: new Date().toISOString() }).eq('id', id);
+    toast('✅ تم إنشاء العميل في Sultan ERP', 'success');
+    await refreshAll();
+  } catch (e) {
+    toast('❌ خطأ في التحويل: ' + e.message, 'error');
+  }
 }
 
 // ============================
@@ -957,22 +1018,15 @@ async function submitAddCustomer() {
   const shop = document.getElementById('f-shop').value.trim();
   const phone = document.getElementById('f-phone').value.trim();
   if (!name || !phone) { toast('⚠️ اسم العميل والهاتف مطلوبان', 'error'); return; }
-  const customer = {
+  const lead = {
     name, shop, phone,
-    area: document.getElementById('f-area').value.trim(),
-    type: document.getElementById('f-type').value,
-    source: document.getElementById('f-source').value,
-    agent: document.getElementById('f-agent').value || STATE.agentName,
-    notes: document.getElementById('f-notes').value.trim(),
+    area: document.getElementById('f-area').value.trim() || null,
+    activity_type: document.getElementById('f-type').value || null,
+    source: document.getElementById('f-source').value || null,
+    notes: document.getElementById('f-notes').value.trim() || null,
     status: 'جديد',
-    regDate: getToday(),
-    lastContact: '',
-    nextFollow: '',
-    lastOrder: 0,
-    total: 0,
   };
-  await addCustomerAPI(customer);
-  // Clear form
+  await addLeadAPI(lead);
   ['f-name','f-shop','f-phone','f-area','f-notes'].forEach(id => document.getElementById(id).value='');
   document.getElementById('f-type').value='';
   document.getElementById('f-source').value='';
@@ -980,48 +1034,17 @@ async function submitAddCustomer() {
 }
 
 // ============================
-// SETTINGS & SETUP
+// LAUNCH / REFRESH
 // ============================
-function saveSetup() {
-  const url = document.getElementById('setup-url').value.trim();
-  const agent = document.getElementById('setup-agent').value.trim();
-  if (!url) { toast('أدخل رابط Apps Script', 'error'); return; }
-  STATE.apiUrl = url;
-  STATE.agentName = agent || 'المسؤول';
-  localStorage.setItem('sultan_url', url);
-  localStorage.setItem('sultan_agent', STATE.agentName);
-  launchApp();
-  fetchCustomers();
-}
-
-function loadDemo() {
-  STATE.isDemo = true;
-  STATE.apiUrl = 'demo';
-  STATE.agentName = 'سلطان';
-  STATE.customers = DEMO_DATA;
-  document.getElementById('demo-badge').style.display = 'block';
-  launchApp();
-  renderAll();
-}
-
-function saveSettings() {
-  STATE.apiUrl = document.getElementById('s-url').value.trim();
-  STATE.agentName = document.getElementById('s-agent').value.trim();
-  localStorage.setItem('sultan_url', STATE.apiUrl);
-  localStorage.setItem('sultan_agent', STATE.agentName);
-  toast('✅ تم حفظ الإعدادات', 'success');
-}
-
 function launchApp() {
   document.getElementById('setup').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  document.getElementById('f-agent').value = STATE.agentName;
   document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('ar-EG', {weekday:'long',day:'numeric',month:'long'});
 }
 
 async function refreshData() {
   toast('⏳ جاري التحديث...');
-  await fetchCustomers();
+  await refreshAll();
   toast('✅ تم التحديث', 'success');
 }
 
@@ -1041,83 +1064,16 @@ function copyMsg(msg) {
 }
 
 function exportCSV() {
-  const headers = ['الاسم','المحل','الهاتف','المنطقة','النوع','الحالة','آخر تواصل','إجمالي المشتريات','المندوب'];
-  const rows = STATE.customers.map(c => [
-    c.name, c.shop, c.phone, c.area, c.type, c.status,
-    c.lastContact, c.total, c.agent
+  const headers = ['الاسم','المحل','الهاتف','المنطقة','النوع','الحالة','آخر تواصل','آخر طلب','المسؤول'];
+  const rows = scopedLeads().map(c => [
+    c.name, c.shop, c.phone, c.area, c.activity_type, c.status,
+    c.last_contact_date, c.last_order_amount, agentNameOf(c)
   ].map(v => `"${(v||'').toString().replace(/"/g,'""')}"`));
-  const csv = '\uFEFF' + [headers, ...rows].map(r => r.join(',')).join('\n');
+  const csv = '﻿' + [headers, ...rows].map(r => r.join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
   a.download = `sultan_crm_${getToday()}.csv`;
   a.click();
-}
-
-// ============================
-// DEMO DATA
-// ============================
-const DEMO_DATA = [
-  {id:'D1',name:'أحمد محمود',shop:'بقالة النور',phone:'01012345678',area:'سيدي بشر',type:'بقالة',status:'طلب أسعار',lastContact:'2026-06-23',nextFollow:'2026-06-26',lastOrder:0,total:0,agent:'سلطان',notes:'مهتم بالشيبسي والعصائر',regDate:'2026-06-20',source:'مندوب'},
-  {id:'D2',name:'محمد علي',shop:'سوبر الخليج',phone:'01123456789',area:'محرم بك',type:'سوبر ماركت',status:'اشترى',lastContact:'2026-06-06',nextFollow:'2026-06-26',lastOrder:3500,total:3500,agent:'سلطان',notes:'طلب شهري منتظم',regDate:'2026-05-15',source:'واتساب'},
-  {id:'D3',name:'خالد إبراهيم',shop:'ميني ماركت الرحمة',phone:'01234567890',area:'العجمي',type:'ميني ماركت',status:'جديد',lastContact:'',nextFollow:'',lastOrder:0,total:0,agent:'سلطان',notes:'',regDate:'2026-06-25',source:'توصية'},
-  {id:'D4',name:'سامي حسن',shop:'محل الأمل',phone:'01098765432',area:'المنتزه',type:'بقالة',status:'مهتم',lastContact:'2026-06-22',nextFollow:'2026-06-27',lastOrder:0,total:0,agent:'سلطان',notes:'عايز مواد تنظيف وسناكس',regDate:'2026-06-18',source:'مندوب'},
-  {id:'D5',name:'وليد فاروق',shop:'كيوسك الكورنيش',phone:'01156789012',area:'كفر عبده',type:'كيوسك',status:'تم التواصل',lastContact:'2026-06-20',nextFollow:'',lastOrder:0,total:0,agent:'سلطان',notes:'',regDate:'2026-06-19',source:'زيارة مباشرة'},
-  {id:'D6',name:'رامي سعد',shop:'سوبر ماركت النيل',phone:'01267890123',area:'سموحة',type:'سوبر ماركت',status:'اشترى',lastContact:'2026-06-10',nextFollow:'2026-06-28',lastOrder:7200,total:7200,agent:'سلطان',notes:'عميل مميز، طلبات كبيرة',regDate:'2026-05-20',source:'واتساب'},
-  {id:'D7',name:'إيهاب نصر',shop:'بقالة الفردوس',phone:'01378901234',area:'لوران',type:'بقالة',status:'خسرناه',lastContact:'2026-06-01',nextFollow:'',lastOrder:800,total:800,agent:'سلطان',notes:'اشكا من السعر',regDate:'2026-05-10',source:'مندوب'},
-  {id:'D8',name:'طارق عصام',shop:'محل البيت',phone:'01489012345',area:'إسكندرية الجديدة',type:'بقالة',status:'جديد',lastContact:'',nextFollow:'',lastOrder:0,total:0,agent:'سلطان',notes:'',regDate:'2026-06-26',source:'سوشيال ميديا'},
-];
-
-// ============================
-// BACKUP & RESTORE
-// ============================
-function exportBackup() {
-  const backup = {
-    app: 'Sultan Sales Control',
-    version: '1.0',
-    exported: new Date().toISOString(),
-    settings: {
-      apiUrl: STATE.apiUrl,
-      agentName: STATE.agentName,
-    }
-  };
-  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'sultan_backup_' + getToday() + '.json';
-  a.click();
-  toast('✅ تم تصدير النسخة الاحتياطية', 'success');
-}
-
-function importBackup() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const backup = JSON.parse(text);
-      if (!backup.settings) { toast('❌ ملف غير صالح', 'error'); return; }
-      STATE.apiUrl   = backup.settings.apiUrl   || '';
-      STATE.agentName= backup.settings.agentName|| '';
-      localStorage.setItem('sultan_url',   STATE.apiUrl);
-      localStorage.setItem('sultan_agent', STATE.agentName);
-      if (document.getElementById('s-url'))   document.getElementById('s-url').value   = STATE.apiUrl;
-      if (document.getElementById('s-agent')) document.getElementById('s-agent').value = STATE.agentName;
-      toast('✅ تم استيراد الإعدادات بنجاح', 'success');
-      // If we have a URL and app is visible, fetch data
-      if (STATE.apiUrl && document.getElementById('app').style.display !== 'none') {
-        fetchCustomers();
-      } else if (STATE.apiUrl) {
-        launchApp();
-        fetchCustomers();
-      }
-    } catch(err) {
-      toast('❌ ملف غير صالح أو تالف', 'error');
-    }
-  };
-  input.click();
 }
 
 // ============================
@@ -1131,7 +1087,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// PWA Install Prompt
 let deferredInstall = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
@@ -1159,12 +1114,14 @@ function installPWA() {
 }
 
 // ============================
-// INIT
+// INIT — لو فيه جلسة دخول محفوظة، ادخل على طول
 // ============================
-(function init() {
-  if (STATE.apiUrl) {
+(async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    await loadCurrentUser(session.user.id);
     launchApp();
-    fetchCustomers();
+    await refreshAll();
   }
 })();
 </script>
