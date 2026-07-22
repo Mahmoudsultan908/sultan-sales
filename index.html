@@ -479,6 +479,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ============================
 const STATE = {
   leads: [],
+  customerTasks: [],
   profiles: [],
   currentUser: null, // { id, name, email }
   activeTab: 'home',
@@ -612,6 +613,30 @@ function waLink(l) {
   return `https://wa.me/${intl}?text=${encodeURIComponent(getWAMsg(l))}`;
 }
 
+// ---- رسالة واتساب عامة لمتابعة عميل حالي (مش Lead، نفس القالب المستخدم في صفحة CRM بالديسك توب) ----
+const CUSTOMER_TPL_KEY = 'متابعة_عميل_حالي';
+const DEFAULT_CUSTOMER_MSG =
+`السلام عليكم أستاذ {name} 👋
+معاك {agent} من شركة سلطان للمواد الغذائية 🌟
+
+حابين نطمن عليك ونعرف احتياجاتك الحالية، وهل محتاج أي أصناف تانية.
+
+في خدمتك 🙏`;
+
+function customerAgentName(t) {
+  return STATE.profiles.find(p => p.id === t.assigned_to)?.name || STATE.currentUser?.name || 'سلطان';
+}
+function customerTaskMsg(t) {
+  const tmpl = STATE.templates[CUSTOMER_TPL_KEY] || DEFAULT_CUSTOMER_MSG;
+  return tmpl.replace(/{name}/g, t.customers?.name || 'العميل').replace(/{agent}/g, customerAgentName(t));
+}
+function customerTaskWaLink(t) {
+  const phone = (t.customers?.phone || '').replace(/\D/g, '');
+  if (!phone) return null;
+  const intl = phone.startsWith('0') ? '2' + phone : phone;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(customerTaskMsg(t))}`;
+}
+
 // ============================
 // AUTH
 // ============================
@@ -656,6 +681,17 @@ async function fetchLeads() {
   STATE.leads = data || [];
 }
 
+// متابعات عملاء موجودين بالفعل (مش عملاء محتملين) — جدول customer_interactions
+// نفسه اللي بيتغذى من صفحة CRM بالديسك توب، عشان المهام تظهر هنا لحظيًا
+async function fetchCustomerTasks() {
+  const { data, error } = await sb.from('customer_interactions')
+    .select('*, customers(name,phone,address)')
+    .eq('is_done', false)
+    .order('next_follow_up_date', { ascending: true, nullsFirst: false });
+  if (error) { STATE.customerTasks = []; return; }
+  STATE.customerTasks = data || [];
+}
+
 async function fetchProfiles() {
   const { data } = await sb.from('profiles').select('id,name,role').eq('is_active', true).order('name');
   STATE.profiles = data || [];
@@ -667,7 +703,7 @@ async function fetchTemplates() {
 }
 
 async function refreshAll() {
-  await Promise.all([fetchLeads(), fetchProfiles(), fetchTemplates()]);
+  await Promise.all([fetchLeads(), fetchProfiles(), fetchTemplates(), fetchCustomerTasks()]);
   renderAll();
 }
 
@@ -709,7 +745,9 @@ function renderDashboard() {
   const total = cs.length;
   const newC = cs.filter(c => c.status === 'جديد').length;
   const ordered = cs.filter(c => c.status === 'اشترى').length;
-  const urgent = cs.filter(c => isUrgent(c)).length;
+  const urgentLeads = cs.filter(c => isUrgent(c));
+  const custTasks = scopedCustomerTasks();
+  const urgent = urgentLeads.length + custTasks.length;
 
   document.getElementById('kpi-total').textContent = total;
   document.getElementById('kpi-new').textContent = newC;
@@ -734,24 +772,39 @@ function renderDashboard() {
     </div>`;
   }).join('');
 
-  const urgents = cs.filter(c => isUrgent(c)).slice(0, 3);
   document.getElementById('urgent-count-t').textContent = `⚠️ ${urgent} عميل يحتاج متابعة`;
   const up = document.getElementById('urgent-preview');
-  if (urgents.length === 0) {
+  const previewItems = [
+    ...urgentLeads.map(c => ({ kind: 'lead', data: c })),
+    ...custTasks.map(t => ({ kind: 'customer', data: t })),
+  ].slice(0, 3);
+  if (previewItems.length === 0) {
     up.innerHTML = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">🎉 لا يوجد متابعات عاجلة</div>`;
     return;
   }
-  up.innerHTML = urgents.map(c => {
-    const cfg = STAGES[c.status] || {};
-    const reason = c.next_follow_up_date && c.next_follow_up_date <= getToday()
-      ? `موعد متابعة: ${c.next_follow_up_date}`
-      : `${c.status} منذ ${daysDiff(c.last_contact_date)} يوم`;
+  up.innerHTML = previewItems.map(item => {
+    if (item.kind === 'lead') {
+      const c = item.data;
+      const cfg = STAGES[c.status] || {};
+      const reason = c.next_follow_up_date && c.next_follow_up_date <= getToday()
+        ? `موعد متابعة: ${c.next_follow_up_date}`
+        : `${c.status} منذ ${daysDiff(c.last_contact_date)} يوم`;
+      return `<div class="task-row">
+        <div class="task-info">
+          <div class="t-name">🎯 ${c.name} — ${c.shop || ''}</div>
+          <div class="t-reason">${cfg.icon||''} ${reason}</div>
+        </div>
+        <a class="btn-wa" href="${waLink(c)}" target="_blank">📲 واتساب</a>
+      </div>`;
+    }
+    const t = item.data;
+    const wa = customerTaskWaLink(t);
     return `<div class="task-row">
       <div class="task-info">
-        <div class="t-name">${c.name} — ${c.shop || ''}</div>
-        <div class="t-reason">${cfg.icon||''} ${reason}</div>
+        <div class="t-name">🤝 ${t.customers?.name || 'عميل'}</div>
+        <div class="t-reason">📅 متابعة: ${t.next_follow_up_date}</div>
       </div>
-      <a class="btn-wa" href="${waLink(c)}" target="_blank">📲 واتساب</a>
+      ${wa ? `<a class="btn-wa" href="${wa}" target="_blank">📲 واتساب</a>` : ''}
     </div>`;
   }).join('');
 }
@@ -828,59 +881,105 @@ function renderCustomers() {
   }).join('');
 }
 
+function scopedCustomerTasks() {
+  const list = STATE.customerTasks.filter(t => t.next_follow_up_date);
+  return STATE.view === 'mine' && STATE.currentUser?.id
+    ? list.filter(t => t.assigned_to === STATE.currentUser.id)
+    : list;
+}
+
+function renderLeadTaskCard(c) {
+  const cfg = STAGES[c.status] || {};
+  let reason = '';
+  let priority = 'عادي';
+  if (c.next_follow_up_date === getToday()) { reason = `📅 موعد متابعة اليوم`; priority = '🔥 عاجل'; }
+  else if (c.next_follow_up_date && c.next_follow_up_date < getToday()) { reason = `⏰ موعد متابعة فات (${c.next_follow_up_date})`; priority = '⚠️ متأخر'; }
+  else { reason = `${cfg.icon||''} ${c.status} منذ ${daysDiff(c.last_contact_date)} يوم`; priority = 'متابعة دورية'; }
+
+  const msg = getWAMsg(c);
+  return `<div class="task-card" style="border-right:3px solid ${cfg.color}">
+    <div class="task-card-hdr">
+      <div>
+        <div class="t-name">🎯 ${c.name} — <span style="color:var(--muted)">${c.shop||''}</span></div>
+        <div class="t-reason" style="margin-top:3px">${reason}</div>
+        ${c.area ? `<div class="t-reason">📍 ${c.area}</div>` : ''}
+      </div>
+      <span style="font-size:10px;color:var(--muted);white-space:nowrap">${priority}</span>
+    </div>
+    <div class="task-card-body">
+      <div class="tc-msg">${msg.replace(/\n/g,'<br>')}</div>
+      <div class="tc-acts">
+        <a class="btn-wa" href="${waLink(c)}" target="_blank">📲 إرسال واتساب</a>
+        <button class="btn-copy" onclick="copyMsg(\`${msg.replace(/`/g,"'")}\`)">📋 نسخ الرسالة</button>
+        <button class="btn-edit" onclick="openEditModal('${c.id}');closeTaskView()">✏️ تحديث</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderCustomerTaskCard(t) {
+  let reason = '';
+  let priority = 'عادي';
+  if (t.next_follow_up_date === getToday()) { reason = `📅 موعد متابعة اليوم`; priority = '🔥 عاجل'; }
+  else if (t.next_follow_up_date < getToday()) { reason = `⏰ موعد متابعة فات (${t.next_follow_up_date})`; priority = '⚠️ متأخر'; }
+  else { reason = `📅 متابعة قادمة (${t.next_follow_up_date})`; priority = 'قادمة'; }
+
+  const waLink = customerTaskWaLink(t);
+  const msg = customerTaskMsg(t);
+  return `<div class="task-card" style="border-right:3px solid #0891B2">
+    <div class="task-card-hdr">
+      <div>
+        <div class="t-name">🤝 ${t.customers?.name || 'عميل'} <span style="color:var(--muted);font-size:10px">(عميل حالي)</span></div>
+        <div class="t-reason" style="margin-top:3px">${reason}</div>
+        ${t.notes ? `<div class="t-reason">📝 ${t.notes}</div>` : ''}
+      </div>
+      <span style="font-size:10px;color:var(--muted);white-space:nowrap">${priority}</span>
+    </div>
+    <div class="task-card-body">
+      <div class="tc-msg">${msg.replace(/\n/g,'<br>')}</div>
+      <div class="tc-acts">
+        ${waLink ? `<a class="btn-wa" href="${waLink}" target="_blank">📲 إرسال واتساب</a>` : ''}
+        <button class="btn-copy" onclick="copyMsg(\`${msg.replace(/`/g,"'")}\`)">📋 نسخ الرسالة</button>
+        <button class="btn-edit" onclick="markInteractionDone('${t.id}')">✅ تمّت المتابعة</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function markInteractionDone(id) {
+  const { error } = await sb.from('customer_interactions').update({ is_done: true }).eq('id', id);
+  if (error) { toast('❌ خطأ: ' + error.message, 'error'); return; }
+  toast('✅ تمت المتابعة', 'success');
+  await refreshAll();
+}
+
 function renderTasks() {
-  const scope = scopedLeads();
-  const urgent = scope.filter(c => isUrgent(c));
-  const today = urgent.filter(c => c.next_follow_up_date === getToday());
-  const overdue = urgent.filter(c => c.next_follow_up_date && c.next_follow_up_date < getToday());
-  const byStage = urgent.filter(c => !c.next_follow_up_date || c.next_follow_up_date > getToday());
+  const urgentLeads = scopedLeads().filter(c => isUrgent(c)).map(c => ({ kind: 'lead', date: c.next_follow_up_date || null, data: c }));
+  const custTasks = scopedCustomerTasks().map(t => ({ kind: 'customer', date: t.next_follow_up_date, data: t }));
+  const all = [...urgentLeads, ...custTasks];
+
+  const today = all.filter(i => i.date === getToday());
+  const overdue = all.filter(i => i.date && i.date < getToday());
+  const rest = all.filter(i => !i.date || i.date > getToday());
 
   document.getElementById('task-stats').innerHTML = `
-    <div class="stat-mini"><div class="stat-mini-n" style="color:var(--lost)">${urgent.length}</div><div class="stat-mini-l">إجمالي المهام</div></div>
+    <div class="stat-mini"><div class="stat-mini-n" style="color:var(--lost)">${all.length}</div><div class="stat-mini-l">إجمالي المهام</div></div>
     <div class="stat-mini"><div class="stat-mini-n" style="color:var(--gold)">${today.length}</div><div class="stat-mini-l">موعد اليوم</div></div>
-    <div class="stat-mini"><div class="stat-mini-n" style="color:var(--ordered)">${byStage.length}</div><div class="stat-mini-l">حسب المرحلة</div></div>
+    <div class="stat-mini"><div class="stat-mini-n" style="color:var(--ordered)">${overdue.length}</div><div class="stat-mini-l">متأخرة</div></div>
   `;
 
   const el = document.getElementById('task-list');
-  if (urgent.length === 0) {
+  if (all.length === 0) {
     el.innerHTML = `<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">لا توجد مهام اليوم، أنجزت كل شيء!</div></div>`;
     return;
   }
 
-  const sorted = [...today, ...overdue, ...byStage];
-
-  el.innerHTML = sorted.map(c => {
-    const cfg = STAGES[c.status] || {};
-    let reason = '';
-    let priority = 'عادي';
-    if (c.next_follow_up_date === getToday()) { reason = `📅 موعد متابعة اليوم`; priority = '🔥 عاجل'; }
-    else if (c.next_follow_up_date && c.next_follow_up_date < getToday()) { reason = `⏰ موعد متابعة فات (${c.next_follow_up_date})`; priority = '⚠️ متأخر'; }
-    else { reason = `${cfg.icon||''} ${c.status} منذ ${daysDiff(c.last_contact_date)} يوم`; priority = 'متابعة دورية'; }
-
-    const msg = getWAMsg(c);
-    return `<div class="task-card" style="border-right:3px solid ${cfg.color}">
-      <div class="task-card-hdr">
-        <div>
-          <div class="t-name">${c.name} — <span style="color:var(--muted)">${c.shop||''}</span></div>
-          <div class="t-reason" style="margin-top:3px">${reason}</div>
-          ${c.area ? `<div class="t-reason">📍 ${c.area}</div>` : ''}
-        </div>
-        <span style="font-size:10px;color:var(--muted);white-space:nowrap">${priority}</span>
-      </div>
-      <div class="task-card-body">
-        <div class="tc-msg">${msg.replace(/\n/g,'<br>')}</div>
-        <div class="tc-acts">
-          <a class="btn-wa" href="${waLink(c)}" target="_blank">📲 إرسال واتساب</a>
-          <button class="btn-copy" onclick="copyMsg(\`${msg.replace(/`/g,"'")}\`)">📋 نسخ الرسالة</button>
-          <button class="btn-edit" onclick="openEditModal('${c.id}');closeTaskView()">✏️ تحديث</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  const sorted = [...today, ...overdue, ...rest];
+  el.innerHTML = sorted.map(i => i.kind === 'lead' ? renderLeadTaskCard(i.data) : renderCustomerTaskCard(i.data)).join('');
 }
 
 function updateBadge() {
-  const cnt = scopedLeads().filter(c => isUrgent(c)).length;
+  const cnt = scopedLeads().filter(c => isUrgent(c)).length + scopedCustomerTasks().length;
   const badge = document.getElementById('task-badge');
   badge.textContent = cnt;
   badge.style.display = cnt > 0 ? 'block' : 'none';
