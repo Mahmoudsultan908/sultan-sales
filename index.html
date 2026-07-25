@@ -56,6 +56,11 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
 /* APP SHELL */
 #app{display:none;flex-direction:column;height:100vh;overflow:hidden}
 
+/* MODE BAR — قمع Leads / متابعة عملاء حاليين */
+.mode-bar{display:flex;gap:0;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0}
+.mode-btn{flex:1;background:none;border:none;padding:10px 6px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent}
+.mode-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
+
 /* HEADER */
 .hdr{height:var(--hdr);background:linear-gradient(135deg,#1d4ed8,#2563eb);border-bottom:none;display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,0.20)}
 .hdr-brand{display:flex;align-items:center;gap:9px}
@@ -233,24 +238,31 @@ body{font-family:'Segoe UI',Tahoma,'Arabic UI',Arial,sans-serif;background:var(-
     </div>
   </header>
 
+  <div class="mode-bar">
+    <button class="mode-btn active" id="mode-leads" onclick="setMode('leads')">🎯 عملاء محتملون</button>
+    <button class="mode-btn" id="mode-customers" onclick="setMode('customers')">🤝 عملاء حاليين</button>
+  </div>
+
   <div class="tab-wrap">
     <!-- TAB 1: DASHBOARD -->
     <div class="tab active" id="tab-home">
       <div class="kpi-grid" id="kpi-grid">
-        <div class="kpi" style="--c:var(--gold)"><div class="kpi-ico">👥</div><div class="kpi-n" id="kpi-total">0</div><div class="kpi-l">عملاء محتملون</div></div>
-        <div class="kpi" style="--c:var(--new)"><div class="kpi-ico">🆕</div><div class="kpi-n" id="kpi-new">0</div><div class="kpi-l">عملاء جدد</div></div>
-        <div class="kpi" style="--c:var(--ordered)"><div class="kpi-ico">✅</div><div class="kpi-n" id="kpi-ordered">0</div><div class="kpi-l">اشتروا</div></div>
+        <div class="kpi" style="--c:var(--gold)"><div class="kpi-ico">👥</div><div class="kpi-n" id="kpi-total">0</div><div class="kpi-l" id="kpi-total-lbl">عملاء محتملون</div></div>
+        <div class="kpi" style="--c:var(--new)"><div class="kpi-ico">🆕</div><div class="kpi-n" id="kpi-new">0</div><div class="kpi-l" id="kpi-new-lbl">عملاء جدد</div></div>
+        <div class="kpi" style="--c:var(--ordered)"><div class="kpi-ico">✅</div><div class="kpi-n" id="kpi-ordered">0</div><div class="kpi-l" id="kpi-ordered-lbl">اشتروا</div></div>
         <div class="kpi" style="--c:var(--lost)"><div class="kpi-ico">⚠️</div><div class="kpi-n" id="kpi-urgent">0</div><div class="kpi-l">تحتاج متابعة</div></div>
       </div>
 
-      <div class="conv-bar">
+      <div class="conv-bar" id="conv-bar-wrap">
         <div class="sec-title">📊 معدل التحويل</div>
         <div class="conv-track"><div class="conv-fill" id="conv-fill" style="width:0%"></div></div>
         <div class="conv-labels"><span id="conv-from">0 عميل</span><span id="conv-pct">0% اشتروا</span></div>
       </div>
 
-      <div class="sec-title">🔄 مسار المبيعات</div>
-      <div class="pipe-grid" id="pipe-grid"></div>
+      <div id="pipe-section">
+        <div class="sec-title">🔄 مسار المبيعات</div>
+        <div class="pipe-grid" id="pipe-grid"></div>
+      </div>
 
       <div class="sec-title">🔔 أهم مهام اليوم</div>
       <div class="urgent-box">
@@ -480,11 +492,14 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const STATE = {
   leads: [],
   customerTasks: [],
+  allCustomers: [], // عملاء حقيقيين (جدول customers) — لوضع "عملاء حاليين"
+  allCustomersLoaded: false,
   profiles: [],
   currentUser: null, // { id, name, email }
   activeTab: 'home',
   activeFilter: 'الكل',
   view: 'mine', // 'mine' | 'all'
+  mode: 'leads', // 'leads' | 'customers'
   templates: {},
 };
 
@@ -702,8 +717,35 @@ async function fetchTemplates() {
   STATE.templates = data?.value || {};
 }
 
+// كل العملاء الحقيقيين (جدول customers) — لوضع "🤝 عملاء حاليين"، عشان
+// الكول سنتر يقدر يدوّر على أي عميل ويسجّل تفاعل معاه، مش بس اللي ليه
+// مهمة متابعة معلّقة بالفعل
+async function fetchAllCustomers() {
+  const { data, error } = await sb.from('customers').select('id,name,phone,balance').order('name');
+  if (error) { STATE.allCustomers = []; return; }
+  STATE.allCustomers = data || [];
+  STATE.allCustomersLoaded = true;
+}
+
 async function refreshAll() {
-  await Promise.all([fetchLeads(), fetchProfiles(), fetchTemplates(), fetchCustomerTasks()]);
+  await Promise.all([fetchLeads(), fetchProfiles(), fetchTemplates(), fetchCustomerTasks(), fetchAllCustomers()]);
+  renderAll();
+}
+
+// ============================
+// MODE — قمع Leads / متابعة عملاء حاليين
+// ============================
+function setMode(mode) {
+  STATE.mode = mode;
+  document.getElementById('mode-leads').classList.toggle('active', mode === 'leads');
+  document.getElementById('mode-customers').classList.toggle('active', mode === 'customers');
+  document.getElementById('kpi-total-lbl').textContent = mode === 'leads' ? 'عملاء محتملون' : 'إجمالي العملاء';
+  document.getElementById('kpi-new-lbl').textContent = mode === 'leads' ? 'عملاء جدد' : 'عليهم رصيد';
+  document.getElementById('kpi-ordered-lbl').textContent = mode === 'leads' ? 'اشتروا' : 'متابعات اليوم';
+  document.getElementById('conv-bar-wrap').style.display = mode === 'leads' ? '' : 'none';
+  document.getElementById('pipe-section').style.display = mode === 'leads' ? '' : 'none';
+  document.getElementById('search-inp').placeholder = mode === 'leads' ? '🔍 ابحث عن عميل أو محل...' : '🔍 ابحث عن عميل...';
+  document.getElementById('stage-pills').style.display = mode === 'leads' ? '' : 'none';
   renderAll();
 }
 
@@ -741,43 +783,61 @@ function renderAll() {
 }
 
 function renderDashboard() {
-  const cs = scopedLeads();
-  const total = cs.length;
-  const newC = cs.filter(c => c.status === 'جديد').length;
-  const ordered = cs.filter(c => c.status === 'اشترى').length;
-  const urgentLeads = cs.filter(c => isUrgent(c));
   const custTasks = scopedCustomerTasks();
-  const urgent = urgentLeads.length + custTasks.length;
 
-  document.getElementById('kpi-total').textContent = total;
-  document.getElementById('kpi-new').textContent = newC;
-  document.getElementById('kpi-ordered').textContent = ordered;
-  document.getElementById('kpi-urgent').textContent = urgent;
+  if (STATE.mode === 'leads') {
+    const cs = scopedLeads();
+    const total = cs.length;
+    const newC = cs.filter(c => c.status === 'جديد').length;
+    const ordered = cs.filter(c => c.status === 'اشترى').length;
+    const urgentLeads = cs.filter(c => isUrgent(c));
+    const urgent = urgentLeads.length + custTasks.length;
 
-  const pct = total > 0 ? Math.round(ordered/total*100) : 0;
-  document.getElementById('conv-fill').style.width = pct + '%';
-  document.getElementById('conv-from').textContent = total + ' عميل';
-  document.getElementById('conv-pct').textContent = pct + '% اشتروا';
+    document.getElementById('kpi-total').textContent = total;
+    document.getElementById('kpi-new').textContent = newC;
+    document.getElementById('kpi-ordered').textContent = ordered;
+    document.getElementById('kpi-urgent').textContent = urgent;
 
-  const pg = document.getElementById('pipe-grid');
-  const stageNames = ['جديد','تم التواصل','مهتم','طلب أسعار','اشترى','خسرناه'];
-  pg.innerHTML = stageNames.map(s => {
-    const cnt = cs.filter(c => c.status === s).length;
-    const p = total > 0 ? Math.round(cnt/total*100) : 0;
-    const cfg = STAGES[s];
-    return `<div class="pstep">
-      <div class="pstep-n" style="color:${cfg.color}">${cnt}</div>
-      <div class="pstep-l">${s}</div>
-      <div class="pstep-pct">${p}%</div>
-    </div>`;
-  }).join('');
+    const pct = total > 0 ? Math.round(ordered/total*100) : 0;
+    document.getElementById('conv-fill').style.width = pct + '%';
+    document.getElementById('conv-from').textContent = total + ' عميل';
+    document.getElementById('conv-pct').textContent = pct + '% اشتروا';
 
-  document.getElementById('urgent-count-t').textContent = `⚠️ ${urgent} عميل يحتاج متابعة`;
+    const pg = document.getElementById('pipe-grid');
+    const stageNames = ['جديد','تم التواصل','مهتم','طلب أسعار','اشترى','خسرناه'];
+    pg.innerHTML = stageNames.map(s => {
+      const cnt = cs.filter(c => c.status === s).length;
+      const p = total > 0 ? Math.round(cnt/total*100) : 0;
+      const cfg = STAGES[s];
+      return `<div class="pstep">
+        <div class="pstep-n" style="color:${cfg.color}">${cnt}</div>
+        <div class="pstep-l">${s}</div>
+        <div class="pstep-pct">${p}%</div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('urgent-count-t').textContent = `⚠️ ${urgent} عميل يحتاج متابعة`;
+    renderDashboardPreview([
+      ...urgentLeads.map(c => ({ kind: 'lead', data: c })),
+      ...custTasks.map(t => ({ kind: 'customer', data: t })),
+    ]);
+  } else {
+    const todayCount = custTasks.filter(t => t.next_follow_up_date === getToday()).length;
+    const withBalance = STATE.allCustomers.filter(c => (Number(c.balance)||0) > 0).length;
+
+    document.getElementById('kpi-total').textContent = STATE.allCustomers.length;
+    document.getElementById('kpi-new').textContent = withBalance;
+    document.getElementById('kpi-ordered').textContent = todayCount;
+    document.getElementById('kpi-urgent').textContent = custTasks.length;
+
+    document.getElementById('urgent-count-t').textContent = `⚠️ ${custTasks.length} عميل يحتاج متابعة`;
+    renderDashboardPreview(custTasks.map(t => ({ kind: 'customer', data: t })));
+  }
+}
+
+function renderDashboardPreview(allItems) {
   const up = document.getElementById('urgent-preview');
-  const previewItems = [
-    ...urgentLeads.map(c => ({ kind: 'lead', data: c })),
-    ...custTasks.map(t => ({ kind: 'customer', data: t })),
-  ].slice(0, 3);
+  const previewItems = allItems.slice(0, 3);
   if (previewItems.length === 0) {
     up.innerHTML = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">🎉 لا يوجد متابعات عاجلة</div>`;
     return;
@@ -817,6 +877,10 @@ function setView(v) {
 }
 
 function renderCustomers() {
+  if (STATE.mode === 'leads') renderLeadsListTab(); else renderExistingCustomersTab();
+}
+
+function renderLeadsListTab() {
   document.getElementById('vt-mine').classList.toggle('active', STATE.view === 'mine');
   document.getElementById('vt-all').classList.toggle('active', STATE.view === 'all');
 
@@ -880,6 +944,97 @@ function renderCustomers() {
     </div>`;
   }).join('');
 }
+
+// عملاء حاليين حقيقيين (جدول customers) — بند 1 من مذكرة 2026-07-25،
+// عشان الكول سنتر يقدر يدوّر على أي عميل موجود بالفعل ويسجّل تفاعل
+// معاه، مش بس اللي ليه مهمة متابعة معلّقة أصلاً
+function renderExistingCustomersTab() {
+  const search = (document.getElementById('search-inp')||{}).value||'';
+  let list = STATE.allCustomers;
+  if (search) {
+    const q = search.toLowerCase();
+    list = list.filter(c => (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q));
+  }
+
+  const el = document.getElementById('customer-list');
+  if (!STATE.allCustomersLoaded) { el.innerHTML = `<div class="spin">⏳ جاري التحميل...</div>`; return; }
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">🔍</div><div class="empty-t">لا يوجد عملاء مطابقون</div></div>`;
+    return;
+  }
+
+  el.innerHTML = list.slice(0, 150).map(c => {
+    const bal = Number(c.balance)||0;
+    const task = STATE.customerTasks.find(t => t.customer_id === c.id && !t.is_done);
+    return `<div class="ccard" style="border-right:3px solid var(--blue)">
+      <div class="ccard-hdr">
+        <div>
+          <div class="c-name">${c.name}</div>
+          <div class="c-shop">${c.phone || '—'}</div>
+        </div>
+        <span class="sbadge" style="color:${bal>0?'var(--lost)':'var(--ordered)'};border-color:${bal>0?'var(--lost)':'var(--ordered)'}">${bal>0 ? bal.toLocaleString('ar')+' ج عليه' : 'مسدد'}</span>
+      </div>
+      <div class="ccard-body">
+        <div class="c-meta">
+          <span>${task ? '📅 متابعة: '+(task.next_follow_up_date||'بدون تاريخ') : 'مفيش متابعة مجدولة'}</span>
+        </div>
+        <div class="c-acts">
+          ${c.phone ? `<a class="btn-wa" href="${existingCustWaLink(c)}" target="_blank">📲</a>` : ''}
+          <button class="btn-edit" onclick="openLogInteractionModal('${c.id}','${(c.name||'').replace(/'/g,"\\'")}')">📞 تسجيل تفاعل</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function existingCustWaLink(c) {
+  const tmpl = STATE.templates['متابعة_عميل_حالي'] || DEFAULT_CUSTOMER_MSG;
+  const msg = tmpl.replace(/{name}/g, c.name || 'العميل').replace(/{agent}/g, STATE.currentUser?.name || 'سلطان');
+  const phone = (c.phone || '').replace(/\D/g, '');
+  const intl = phone.startsWith('0') ? '2' + phone : phone;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`;
+}
+
+// ============================
+// تسجيل تفاعل سريع لعميل حالي (وضع "عملاء حاليين")
+// ============================
+window.openLogInteractionModal = function (customerId, customerName) {
+  const modal = document.createElement('div');
+  modal.className = 'modal open';
+  modal.id = 'modal-log-int';
+  modal.innerHTML = `
+    <div class="mbox">
+      <div class="mhdr"><span class="mtitle">📞 تسجيل تفاعل — ${customerName}</span>
+        <button class="mclose" onclick="document.getElementById('modal-log-int').remove()">✕</button></div>
+      <label class="flabel">نوع التفاعل</label>
+      <select class="fselect" id="li-type" style="margin-bottom:14px">
+        <option value="call">📞 مكالمة</option>
+        <option value="visit">🚶 زيارة</option>
+        <option value="complaint">⚠️ شكوى</option>
+        <option value="note">📝 ملاحظة</option>
+      </select>
+      <label class="flabel">موعد المتابعة القادمة (اختياري)</label>
+      <input class="finput" id="li-follow" type="date">
+      <label class="flabel">ملاحظات</label>
+      <textarea class="fta" id="li-notes" style="margin-bottom:14px"></textarea>
+      <button class="btn-gold" onclick="saveLogInteraction('${customerId}')">💾 حفظ</button>
+    </div>`;
+  document.body.appendChild(modal);
+};
+
+window.saveLogInteraction = async function (customerId) {
+  const type = document.getElementById('li-type').value;
+  const next_follow_up_date = document.getElementById('li-follow').value || null;
+  const notes = document.getElementById('li-notes').value.trim() || null;
+  const { error } = await sb.from('customer_interactions').insert({
+    customer_id: customerId, type, notes, next_follow_up_date,
+    interaction_date: getToday(), assigned_to: STATE.currentUser?.id || null, created_by: STATE.currentUser?.id || null,
+  });
+  if (error) { toast('❌ خطأ: ' + error.message, 'error'); return; }
+  document.getElementById('modal-log-int')?.remove();
+  toast('✅ تم تسجيل التفاعل', 'success');
+  await refreshAll();
+};
 
 function scopedCustomerTasks() {
   const list = STATE.customerTasks.filter(t => t.next_follow_up_date);
